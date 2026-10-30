@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+htmlcov/
+*.sqlite3-journal
+*.db-journal
+*.db-wal
+*.db-shm
+.env
+.env.local
+.vercel

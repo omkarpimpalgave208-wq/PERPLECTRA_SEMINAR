@@ -1,0 +1,1546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PERPLECTRA — Autonomous System Recovery Infrastructure</title>
+  <meta name="description" content="PERPLECTRA makes AI agent actions recoverable. Detect failures, select safe recovery strategies, restore affected systems, and verify outcomes independently." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-root:#101113; --bg-panel:#17191C; --bg-surface:#202329;
+      --bg-surface-2:#272B33; --bg-hover:#2A2F38;
+      --border:#34373D; --border-subtle:#2A2D33;
+      --text-primary:#F5F7FA; --text-secondary:#A7ADB7;
+      --text-muted:#6B7280; --text-code:#C9D1E0;
+      --blue:#55A8FF; --blue-dim:rgba(85,168,255,0.12);
+      --blue-border:rgba(85,168,255,0.25);
+      --cyan:#58D6E8; --cyan-dim:rgba(88,214,232,0.10);
+      --green:#52D6A0; --green-dim:rgba(82,214,160,0.10);
+      --green-border:rgba(82,214,160,0.25);
+      --amber:#F5A623; --amber-dim:rgba(245,166,35,0.10);
+      --red:#F75C5C; --red-dim:rgba(247,92,92,0.10);
+      --sidebar-width:220px; --topbar-height:52px;
+      --radius-sm:4px; --radius-md:6px; --radius-lg:10px;
+      --font-sans:'Inter',system-ui,sans-serif;
+      --font-mono:'JetBrains Mono','Fira Code',monospace;
+      --transition:150ms cubic-bezier(0.4,0,0.2,1);
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html,body{height:100%;}
+    body{font-family:var(--font-sans);background:var(--bg-root);color:var(--text-primary);font-size:13px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow:hidden;}
+    a{color:var(--blue);text-decoration:none;}
+    button{cursor:pointer;font-family:var(--font-sans);}
+    input,select,textarea{font-family:var(--font-sans);}
+    ::-webkit-scrollbar{width:6px;height:6px;}
+    ::-webkit-scrollbar-track{background:transparent;}
+    ::-webkit-scrollbar-thumb{background:#34373D;border-radius:3px;}
+    ::-webkit-scrollbar-thumb:hover{background:#44484F;}
+    .app{display:flex;height:100vh;overflow:hidden;}
+    .sidebar{width:var(--sidebar-width);min-width:var(--sidebar-width);background:var(--bg-panel);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100;overflow:hidden;}
+    .sidebar-brand{padding:18px 20px 16px;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;gap:10px;flex-shrink:0;}
+    .brand-mark{width:28px;height:28px;background:linear-gradient(135deg,#55A8FF 0%,#58D6E8 100%);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .brand-mark svg{width:16px;height:16px;}
+    .brand-name{font-size:11px;font-weight:700;letter-spacing:0.12em;color:var(--text-primary);line-height:1;}
+    .brand-sub{font-size:9px;color:var(--text-muted);letter-spacing:0.06em;text-transform:uppercase;line-height:1.4;}
+    .sidebar-nav{flex:1;padding:12px 0;overflow-y:auto;}
+    .nav-section-label{padding:6px 20px 4px;font-size:9px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted);}
+    .nav-item{display:flex;align-items:center;gap:10px;padding:8px 20px;color:var(--text-secondary);font-size:12.5px;font-weight:450;cursor:pointer;transition:color var(--transition),background var(--transition);border:none;background:none;width:100%;text-align:left;position:relative;letter-spacing:0.01em;}
+    .nav-item:hover{color:var(--text-primary);background:var(--bg-hover);}
+    .nav-item.active{color:var(--blue);background:var(--blue-dim);}
+    .nav-item.active::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--blue);border-radius:0 1px 1px 0;}
+    .nav-step-num{width:16px;height:16px;border-radius:50%;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:var(--text-muted);flex-shrink:0;}
+    .nav-item.active .nav-step-num{border-color:var(--blue);color:var(--blue);background:var(--blue-dim);}
+    .sidebar-footer{padding:14px 20px;border-top:1px solid var(--border-subtle);flex-shrink:0;}
+    .sidebar-footer-text{font-size:10px;color:var(--text-muted);}
+    .sidebar-footer-version{font-family:var(--font-mono);font-size:9px;color:var(--text-muted);margin-top:2px;}
+    .main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
+    .topbar{height:var(--topbar-height);min-height:var(--topbar-height);background:var(--bg-panel);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;gap:16px;flex-shrink:0;z-index:10;}
+    .topbar-breadcrumb{display:flex;align-items:center;gap:8px;flex:1;}
+    .breadcrumb-product{font-size:11px;font-weight:600;letter-spacing:0.08em;color:var(--text-muted);text-transform:uppercase;}
+    .breadcrumb-sep{color:var(--border);font-size:13px;}
+    .breadcrumb-page{font-size:12px;font-weight:500;color:var(--text-primary);}
+    .topbar-right{display:flex;align-items:center;gap:12px;}
+    .topbar-status{display:flex;align-items:center;gap:6px;padding:4px 10px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:11px;color:var(--text-secondary);}
+    .status-dot{width:6px;height:6px;border-radius:50%;background:var(--text-muted);}
+    .status-dot.connected{background:var(--green);box-shadow:0 0 6px rgba(82,214,160,0.5);}
+    .topbar-demo-badge{padding:3px 8px;background:var(--amber-dim);border:1px solid rgba(245,166,35,0.2);border-radius:var(--radius-sm);font-size:10px;font-weight:600;color:var(--amber);letter-spacing:0.06em;text-transform:uppercase;}
+    .content{flex:1;overflow-y:auto;overflow-x:hidden;}
+    .page{display:none;} .page.active{display:block;}
+    .page-inner{max-width:820px;margin:0 auto;padding:36px 28px 60px;}
+    .page-inner.wide{max-width:1060px;}
+    .page-title{font-size:20px;font-weight:650;color:var(--text-primary);letter-spacing:-0.01em;line-height:1.3;}
+    .page-subtitle{font-size:13px;color:var(--text-secondary);margin-top:6px;line-height:1.6;}
+    .page-header{margin-bottom:32px;}
+    .section-label{font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px;}
+    .card{background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px 24px;}
+    .card+.card{margin-top:12px;}
+    .field{margin-bottom:16px;}
+    .field-label{display:block;font-size:11px;font-weight:600;color:var(--text-secondary);letter-spacing:0.04em;margin-bottom:6px;text-transform:uppercase;}
+    .field-hint{font-size:11px;color:var(--text-muted);margin-top:4px;}
+    input[type="text"],input[type="password"],select,textarea{width:100%;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text-primary);font-size:13px;padding:9px 12px;outline:none;transition:border-color var(--transition),box-shadow var(--transition);-webkit-appearance:none;}
+    input[type="text"]:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-dim);}
+    select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236B7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;cursor:pointer;}
+    textarea{resize:vertical;min-height:80px;}
+    .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+    .btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:var(--radius-md);font-size:12.5px;font-weight:600;border:1px solid transparent;transition:all var(--transition);letter-spacing:0.01em;}
+    .btn-primary{background:var(--blue);color:#0A0C10;border-color:var(--blue);}
+    .btn-primary:hover{background:#70B8FF;border-color:#70B8FF;}
+    .btn-secondary{background:var(--bg-surface);color:var(--text-primary);border-color:var(--border);}
+    .btn-secondary:hover{background:var(--bg-hover);border-color:#44484F;}
+    .btn-ghost{background:transparent;color:var(--text-secondary);border-color:transparent;padding:7px 12px;}
+    .btn-ghost:hover{color:var(--text-primary);background:var(--bg-hover);}
+    .btn-sm{padding:5px 12px;font-size:11.5px;}
+    .btn svg{width:14px;height:14px;flex-shrink:0;}
+    .code-block{background:#0C0E10;border:1px solid var(--border-subtle);border-radius:var(--radius-md);overflow:hidden;}
+    .code-block-header{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid var(--border-subtle);background:#13161A;}
+    .code-lang{font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);}
+    .copy-btn{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-secondary);background:none;border:none;padding:3px 8px;border-radius:var(--radius-sm);cursor:pointer;transition:color var(--transition),background var(--transition);}
+    .copy-btn:hover{color:var(--text-primary);background:var(--bg-hover);}
+    .copy-btn.copied{color:var(--green);}
+    .copy-btn svg{width:12px;height:12px;}
+    .code-content{padding:14px 16px;overflow-x:auto;font-family:var(--font-mono);font-size:12px;line-height:1.7;color:var(--text-code);white-space:pre;}
+    .kw{color:#C792EA;} .fn{color:#82AAFF;} .st{color:#C3E88D;} .cm{color:#546E7A;font-style:italic;} .va{color:#F78C6C;} .nu{color:#F78C6C;} .at{color:#FFCB6B;}
+    .badge{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:20px;font-size:10.5px;font-weight:600;letter-spacing:0.04em;}
+    .badge-green{background:var(--green-dim);color:var(--green);border:1px solid var(--green-border);}
+    .badge-blue{background:var(--blue-dim);color:var(--blue);border:1px solid var(--blue-border);}
+    .badge-amber{background:var(--amber-dim);color:var(--amber);border:1px solid rgba(245,166,35,0.25);}
+    .badge-red{background:var(--red-dim);color:var(--red);border:1px solid rgba(247,92,92,0.25);}
+    .badge-muted{background:var(--bg-surface);color:var(--text-muted);border:1px solid var(--border);}
+    .badge-dot{width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;}
+    .divider{height:1px;background:var(--border-subtle);margin:24px 0;}
+    .kv-list{display:flex;flex-direction:column;gap:8px;}
+    .kv-row{display:flex;align-items:baseline;gap:8px;}
+    .kv-key{font-size:11px;color:var(--text-muted);min-width:140px;flex-shrink:0;}
+    .kv-val{font-size:11.5px;color:var(--text-secondary);font-family:var(--font-mono);}
+    .illustrative-notice{display:flex;align-items:flex-start;gap:8px;background:var(--amber-dim);border:1px solid rgba(245,166,35,0.2);border-radius:var(--radius-md);padding:10px 14px;font-size:11.5px;color:var(--amber);margin-bottom:16px;}
+    .illustrative-notice svg{flex-shrink:0;width:14px;height:14px;margin-top:1px;}
+    .validation-list{display:flex;flex-direction:column;gap:8px;}
+    .validation-item{display:flex;align-items:flex-start;gap:8px;font-size:11.5px;color:var(--text-secondary);}
+    .validation-icon{width:15px;height:15px;flex-shrink:0;margin-top:1px;}
+    .validation-icon.check{color:var(--green);} .validation-icon.info{color:var(--blue);}
+    .sim-tag{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:3px;font-size:9.5px;font-weight:700;letter-spacing:0.08em;background:rgba(245,166,35,0.12);border:1px solid rgba(245,166,35,0.25);color:var(--amber);flex-shrink:0;}
+    .demo-tag{font-size:9px;font-weight:700;letter-spacing:0.06em;padding:1px 6px;border-radius:2px;background:rgba(107,114,128,0.10);border:1px solid var(--border);color:var(--text-muted);vertical-align:middle;display:inline-block;}
+    /* PAGE 1 */
+    .gs-hero{padding:10px 0 32px;}
+    .gs-hero-eyebrow{display:inline-flex;align-items:center;gap:8px;padding:4px 12px;background:var(--blue-dim);border:1px solid var(--blue-border);border-radius:20px;font-size:10.5px;font-weight:600;color:var(--blue);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:16px;}
+    .gs-hero-title{font-size:28px;font-weight:700;color:var(--text-primary);letter-spacing:-0.02em;line-height:1.2;margin-bottom:10px;}
+    .gs-hero-title span{color:var(--blue);}
+    .gs-hero-desc{font-size:14px;color:var(--text-secondary);line-height:1.65;max-width:520px;}
+    .gs-columns{display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start;}
+    .api-key-result{background:#0C0E10;border:1px solid var(--green-border);border-radius:var(--radius-md);padding:14px 16px;margin-top:6px;}
+    .api-key-label-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+    .api-key-label{font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--green);}
+    .api-key-value{font-family:var(--font-mono);font-size:11px;color:var(--text-code);word-break:break-all;line-height:1.6;}
+    .api-key-warning{margin-top:8px;font-size:10.5px;color:var(--amber);display:flex;align-items:flex-start;gap:6px;}
+    .next-step-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px 16px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:border-color var(--transition),background var(--transition);}
+    .next-step-card:hover{border-color:var(--blue-border);background:var(--blue-dim);}
+    .next-step-icon{width:36px;height:36px;background:var(--bg-surface-2);border:1px solid var(--border);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .next-step-icon svg{width:16px;height:16px;color:var(--blue);}
+    .next-step-title{font-size:12.5px;font-weight:600;color:var(--text-primary);}
+    .next-step-desc{font-size:11px;color:var(--text-muted);margin-top:2px;}
+    .gs-flow-item{display:flex;gap:14px;align-items:flex-start;}
+    .gs-flow-line{display:flex;flex-direction:column;align-items:center;flex-shrink:0;}
+    .gs-flow-dot{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--border);background:var(--bg-surface);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--text-muted);flex-shrink:0;}
+    .gs-flow-dot.done{border-color:var(--blue);background:var(--blue-dim);color:var(--blue);}
+    .gs-flow-connector{width:1px;flex:1;min-height:20px;background:var(--border-subtle);margin:2px 0;}
+    .gs-flow-content{padding-bottom:20px;flex:1;}
+    .gs-flow-label{font-size:12px;font-weight:600;color:var(--text-primary);line-height:1;padding-top:3px;}
+    .gs-flow-sublabel{font-size:11px;color:var(--text-muted);margin-top:3px;}
+    /* PAGE 2 */
+    .connect-steps{display:flex;flex-direction:column;gap:4px;margin-bottom:28px;}
+    .connect-step{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--radius-md);cursor:pointer;transition:background var(--transition);border:1px solid transparent;}
+    .connect-step.active{background:var(--blue-dim);border-color:var(--blue-border);}
+    .connect-step:not(.active):hover{background:var(--bg-hover);}
+    .step-num{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--text-muted);flex-shrink:0;background:var(--bg-surface);}
+    .connect-step.active .step-num{border-color:var(--blue);color:var(--blue);background:var(--blue-dim);}
+    .step-label{font-size:12.5px;font-weight:500;color:var(--text-secondary);}
+    .connect-step.active .step-label{color:var(--text-primary);font-weight:600;}
+    .connect-content-area{background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;}
+    .connect-content-header{padding:16px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+    .connect-content-title{font-size:13px;font-weight:600;color:var(--text-primary);}
+    .connect-content-body{padding:22px;}
+    .connect-content-pane{display:none;} .connect-content-pane.active{display:block;}
+    .sdk-tabs{display:flex;gap:2px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:3px;margin-bottom:14px;width:fit-content;}
+    .sdk-tab{padding:5px 14px;border-radius:var(--radius-sm);font-size:11.5px;font-weight:500;color:var(--text-secondary);cursor:pointer;border:none;background:none;transition:all var(--transition);}
+    .sdk-tab.active{background:var(--bg-panel);color:var(--text-primary);box-shadow:0 1px 3px rgba(0,0,0,0.3);}
+    /* PAGE 3 */
+    .protect-layout{display:grid;grid-template-columns:1fr 280px;gap:20px;align-items:start;}
+    .risk-selector{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+    .risk-option{padding:10px 12px;border-radius:var(--radius-md);border:1px solid var(--border);background:var(--bg-surface);cursor:pointer;transition:all var(--transition);text-align:center;}
+    .risk-option:hover{border-color:#44484F;background:var(--bg-hover);}
+    .risk-option.selected{border-color:var(--blue-border);background:var(--blue-dim);}
+    .risk-option-label{font-size:11.5px;font-weight:600;}
+    .risk-option-desc{font-size:10px;color:var(--text-muted);margin-top:3px;}
+    .recovery-modes{display:flex;flex-direction:column;gap:8px;}
+    .recovery-mode{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:var(--radius-md);border:1px solid var(--border);background:var(--bg-surface);cursor:pointer;transition:all var(--transition);}
+    .recovery-mode:hover{border-color:#44484F;}
+    .recovery-mode.selected{border-color:var(--blue-border);background:var(--blue-dim);}
+    .recovery-mode-radio{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;}
+    .recovery-mode.selected .recovery-mode-radio{border-color:var(--blue);}
+    .recovery-mode.selected .recovery-mode-radio::after{content:'';width:6px;height:6px;border-radius:50%;background:var(--blue);display:block;}
+    .recovery-mode-label{font-size:12px;font-weight:600;color:var(--text-primary);}
+    .recovery-mode-desc{font-size:11px;color:var(--text-muted);margin-top:2px;line-height:1.5;}
+    .adv-toggle{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text-secondary);cursor:pointer;padding:6px 0;border:none;background:none;transition:color var(--transition);}
+    .adv-toggle:hover{color:var(--text-primary);}
+    .adv-toggle svg{width:12px;height:12px;transition:transform var(--transition);}
+    .adv-toggle.open svg{transform:rotate(90deg);}
+    .adv-section{display:none;border-top:1px solid var(--border-subtle);padding-top:16px;margin-top:12px;}
+    .adv-section.open{display:block;}
+    /* PAGE 4 */
+    .rv-layout{display:grid;grid-template-columns:300px 1fr;gap:20px;align-items:start;}
+    .timeline{display:flex;flex-direction:column;}
+    .tl-item{display:flex;gap:12px;cursor:pointer;padding:4px 8px 4px 0;border-radius:var(--radius-md);transition:background var(--transition);}
+    .tl-item:hover{background:var(--bg-hover);}
+    .tl-item.active{background:var(--blue-dim);}
+    .tl-line-col{display:flex;flex-direction:column;align-items:center;padding:6px 0;flex-shrink:0;width:24px;margin-left:8px;}
+    .tl-dot{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--border);background:var(--bg-surface);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .tl-dot.success{border-color:var(--green);background:var(--green-dim);}
+    .tl-dot.failure{border-color:var(--red);background:var(--red-dim);}
+    .tl-dot.warning{border-color:var(--amber);background:var(--amber-dim);}
+    .tl-dot svg{width:10px;height:10px;}
+    .tl-dot.success svg{color:var(--green);} .tl-dot.failure svg{color:var(--red);} .tl-dot.warning svg{color:var(--amber);}
+    .tl-connector{width:1px;flex:1;min-height:16px;background:var(--border-subtle);}
+    .tl-content{flex:1;padding:4px 0 16px;}
+    .tl-step-name{font-size:12px;font-weight:600;color:var(--text-primary);line-height:1.2;}
+    .tl-step-detail{font-size:11px;color:var(--text-muted);margin-top:3px;line-height:1.5;}
+    .tl-step-time{font-family:var(--font-mono);font-size:9.5px;color:var(--text-muted);margin-top:4px;}
+    .rv-detail-panel{background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;}
+    .rv-detail-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+    .rv-detail-title{font-size:12.5px;font-weight:600;color:var(--text-primary);}
+    .rv-detail-body{padding:20px;}
+    .rv-status-banner{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:var(--radius-md);margin-bottom:18px;}
+    .rv-status-banner.success{background:var(--green-dim);border:1px solid var(--green-border);}
+    .rv-status-banner.failure{background:var(--red-dim);border:1px solid rgba(247,92,92,0.25);}
+    .rv-status-banner.warning{background:var(--amber-dim);border:1px solid rgba(245,166,35,0.25);}
+    .rv-status-icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .rv-status-banner.success .rv-status-icon{background:rgba(82,214,160,0.15);}
+    .rv-status-banner.failure .rv-status-icon{background:rgba(247,92,92,0.15);}
+    .rv-status-banner.warning .rv-status-icon{background:rgba(245,166,35,0.15);}
+    .rv-status-icon svg{width:16px;height:16px;}
+    .rv-status-banner.success .rv-status-icon svg{color:var(--green);}
+    .rv-status-banner.failure .rv-status-icon svg{color:var(--red);}
+    .rv-status-banner.warning .rv-status-icon svg{color:var(--amber);}
+    .rv-status-label{font-size:13px;font-weight:700;color:var(--text-primary);}
+    .rv-status-sublabel{font-size:11px;color:var(--text-secondary);margin-top:2px;}
+    .evidence-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+    .evidence-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:12px 14px;}
+    .evidence-label{font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;}
+    .evidence-value{font-family:var(--font-mono);font-size:11.5px;color:var(--text-code);line-height:1.6;}
+    .evidence-value.ok{color:var(--green);} .evidence-value.err{color:var(--red);}
+    .before-after{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;margin-bottom:16px;}
+    .ba-panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:12px 14px;}
+    .ba-label{font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;}
+    .ba-label.before{color:var(--red);} .ba-label.after{color:var(--green);}
+    .ba-content{font-family:var(--font-mono);font-size:10.5px;color:var(--text-code);line-height:1.7;white-space:pre;}
+    /* PAGE 5 */
+    .receipts-layout{display:grid;grid-template-columns:340px 1fr;gap:16px;align-items:start;}
+    .receipts-list-panel{background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;}
+    .receipts-list-header{padding:12px 16px;border-bottom:1px solid var(--border);}
+    .receipts-search{width:100%;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;font-size:12px;color:var(--text-primary);outline:none;}
+    .receipts-search:focus{border-color:var(--blue);}
+    .receipts-filter{display:flex;gap:4px;padding:8px 12px;border-bottom:1px solid var(--border-subtle);background:var(--bg-surface);}
+    .filter-chip{padding:3px 10px;border-radius:20px;font-size:10.5px;font-weight:600;color:var(--text-muted);border:1px solid var(--border);background:none;cursor:pointer;transition:all var(--transition);}
+    .filter-chip:hover{color:var(--text-secondary);border-color:#44484F;}
+    .filter-chip.active{color:var(--blue);border-color:var(--blue-border);background:var(--blue-dim);}
+    .receipt-item{padding:12px 16px;border-bottom:1px solid var(--border-subtle);cursor:pointer;transition:background var(--transition);}
+    .receipt-item:last-child{border-bottom:none;}
+    .receipt-item:hover{background:var(--bg-hover);}
+    .receipt-item.selected{background:var(--blue-dim);border-left:2px solid var(--blue);padding-left:14px;}
+    .receipt-item-row1{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+    .receipt-action{font-size:12px;font-weight:600;color:var(--text-primary);}
+    .receipt-id{font-family:var(--font-mono);font-size:9.5px;color:var(--text-muted);}
+    .receipt-item-row2{display:flex;align-items:center;justify-content:space-between;}
+    .receipt-env{font-size:11px;color:var(--text-muted);}
+    .receipt-ts{font-family:var(--font-mono);font-size:10px;color:var(--text-muted);}
+    .receipt-detail-panel{background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;min-height:500px;}
+    .receipt-detail-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+    .receipt-detail-id{font-family:var(--font-mono);font-size:10px;color:var(--text-muted);margin-bottom:4px;}
+    .receipt-detail-title{font-size:14px;font-weight:700;color:var(--text-primary);}
+    .receipt-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--bg-surface);}
+    .receipt-tab{padding:10px 16px;font-size:12px;font-weight:500;color:var(--text-secondary);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;transition:all var(--transition);}
+    .receipt-tab.active{color:var(--blue);border-bottom-color:var(--blue);background:var(--bg-panel);}
+    .receipt-tab:hover:not(.active){color:var(--text-primary);background:var(--bg-hover);}
+    .rtab-content{display:none;padding:20px;}
+    .rtab-content.active{display:block;}
+    /* MOBILE */
+    .mobile-topbar{display:none;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg-panel);border-bottom:1px solid var(--border);}
+    .hamburger{width:28px;height:28px;border:none;background:none;cursor:pointer;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:0;}
+    .hamburger span{display:block;width:18px;height:1.5px;background:var(--text-secondary);border-radius:1px;}
+    .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:199;}
+    .sidebar-overlay.open{display:block;}
+    @media(max-width:768px){
+      body{overflow:auto;}
+      .app{flex-direction:column;height:auto;overflow:visible;}
+      .sidebar{position:fixed;top:0;left:0;height:100vh;z-index:200;transform:translateX(-100%);transition:transform 0.25s ease;}
+      .sidebar.open{transform:translateX(0);}
+      .main{overflow:visible;}
+      .topbar{display:none;}
+      .mobile-topbar{display:flex;}
+      .content{overflow:visible;height:auto;}
+      .page-inner{padding:20px 16px 40px;}
+      .gs-columns,.protect-layout,.rv-layout,.receipts-layout{grid-template-columns:1fr;}
+      .field-row,.evidence-grid,.before-after{grid-template-columns:1fr;}
+      .risk-selector{grid-template-columns:1fr;}
+      .ba-arrow{display:none;}
+    }
+  </style>
+</head>
+<body>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeMobileSidebar()"></div>
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 16 16" fill="none">
+          <path d="M8 2L14 5.5V10.5L8 14L2 10.5V5.5L8 2Z" fill="rgba(255,255,255,0.15)" stroke="white" stroke-width="1.2"/>
+          <path d="M8 5L11 6.75V10.25L8 12L5 10.25V6.75L8 5Z" fill="white" opacity="0.9"/>
+          <circle cx="8" cy="8" r="1.5" fill="#101113"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name">PERPLECTRA</div>
+        <div class="brand-sub">Recovery Infrastructure</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Workflow</div>
+      <button class="nav-item active" id="nav-get-started" onclick="navigateTo('get-started')"><span class="nav-step-num">1</span><span>Get Started</span></button>
+      <button class="nav-item" id="nav-connect" onclick="navigateTo('connect')"><span class="nav-step-num">2</span><span>Connect</span></button>
+      <button class="nav-item" id="nav-protect" onclick="navigateTo('protect')"><span class="nav-step-num">3</span><span>Protect Actions</span></button>
+      <button class="nav-item" id="nav-recover" onclick="navigateTo('recover')"><span class="nav-step-num">4</span><span>Recover &amp; Verify</span></button>
+      <button class="nav-item" id="nav-receipts" onclick="navigateTo('receipts')"><span class="nav-step-num">5</span><span>Execution Receipts</span></button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-text">UI Preview &mdash; Illustrative data</div>
+      <div class="sidebar-footer-version">v0.1.0-preview</div>
+    </div>
+  </aside>
+  <div class="main">
+    <div class="mobile-topbar">
+      <button class="hamburger" onclick="openMobileSidebar()"><span></span><span></span><span></span></button>
+      <span style="font-size:12px;font-weight:700;letter-spacing:0.1em;">PERPLECTRA</span>
+      <div class="topbar-demo-badge">Demo</div>
+    </div>
+    <div class="topbar">
+      <div class="topbar-breadcrumb">
+        <span class="breadcrumb-product">Perplectra</span>
+        <span class="breadcrumb-sep">/</span>
+        <span class="breadcrumb-page" id="topbarPageName">Get Started</span>
+      </div>
+      <div class="topbar-right">
+        <div class="topbar-status"><div class="status-dot" id="statusDot"></div><span id="statusText">Not connected</span></div>
+        <div class="topbar-demo-badge">Illustrative</div>
+      </div>
+    </div>
+    <div class="content">
+
+      <!-- PAGE 1: GET STARTED -->
+      <div class="page active" id="page-get-started">
+        <div class="page-inner">
+          <div class="gs-hero">
+            <div class="gs-hero-eyebrow">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M5 3v2.5L6.5 7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+              Autonomous Recovery Infrastructure
+            </div>
+            <h1 class="gs-hero-title">Make AI actions <span>recoverable.</span></h1>
+            <p class="gs-hero-desc">PERPLECTRA wraps AI agent operations with detection, rollback, and independent verification &mdash; so when something goes wrong, recovery is automatic and auditable.</p>
+          </div>
+          <div class="gs-columns">
+            <div>
+              <div class="card">
+                <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:18px;">Create your first agent</div>
+                <div class="field">
+                  <label class="field-label" for="agentName">Agent name</label>
+                  <input type="text" id="agentName" placeholder="e.g. infra-provisioner-01" />
+                  <div class="field-hint">A unique identifier for this agent in your PERPLECTRA workspace.</div>
+                </div>
+                <div class="field-row">
+                  <div class="field">
+                    <label class="field-label" for="agentType">Agent type</label>
+                    <select id="agentType">
+                      <option value="">Select type&hellip;</option>
+                      <option value="Infrastructure">Infrastructure</option>
+                      <option value="Data Pipeline">Data Pipeline</option>
+                      <option value="Deployment">Deployment</option>
+                      <option value="Database">Database</option>
+                      <option value="API Orchestration">API Orchestration</option>
+                      <option value="Custom">Custom</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label class="field-label" for="agentEnv">Target environment</label>
+                    <select id="agentEnv">
+                      <option value="">Select&hellip;</option>
+                      <option value="dev">Development</option>
+                      <option value="staging">Staging</option>
+                      <option value="production">Production</option>
+                      <option value="sandbox">Sandbox</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="field">
+                  <label class="field-label" for="agentDesc">Description <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
+                  <textarea id="agentDesc" rows="2" placeholder="What does this agent do?"></textarea>
+                </div>
+                <button class="btn btn-primary" id="createAgentBtn" onclick="createAgent()" style="width:100%;justify-content:center;margin-top:4px;">
+                  <svg viewBox="0 0 14 14" fill="none"><path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                  Create agent
+                </button>
+                <div id="createAgentError" style="display:none;margin-top:12px;padding:10px 12px;background:var(--red-dim);border:1px solid rgba(247,92,92,0.3);border-radius:var(--radius-sm);color:var(--red);font-size:11.5px;line-height:1.4;">
+                  <div style="display:flex;align-items:flex-start;gap:8px;">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink:0;margin-top:1px;"><path d="M7 1L1 12h12L7 1z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M7 5.5v3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="7" cy="10" r=".7" fill="currentColor"/></svg>
+                    <div id="createAgentErrorMessage"></div>
+                  </div>
+                </div>
+                <div id="apiKeyResult" style="display:none;margin-top:16px;">
+                  <div class="api-key-result">
+                    <div class="api-key-label-row">
+                      <div class="api-key-label">&#x2713; API Key generated</div>
+                      <button class="copy-btn" onclick="copyApiKey(this)">
+                        <svg viewBox="0 0 12 12" fill="none"><rect x="3.5" y="3.5" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.1"/><path d="M3.5 8.5H2A1.5 1.5 0 0 1 .5 7V2A1.5 1.5 0 0 1 2 .5h5A1.5 1.5 0 0 1 8.5 2v1.5" stroke="currentColor" stroke-width="1.1"/></svg>Copy
+                      </button>
+                    </div>
+                    <div class="api-key-value" id="apiKeyDisplay">pxk_live_placeholder</div>
+                    <div class="api-key-warning">
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1L1 10h10L6 1z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><path d="M6 5v2.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="6" cy="9" r=".5" fill="currentColor"/></svg>
+                      Copy this key now. It will not be shown again.
+                    </div>
+                  </div>
+                  <div class="next-step-card" style="margin-top:12px;" onclick="navigateTo('connect')">
+                    <div class="next-step-icon"><svg viewBox="0 0 16 16" fill="none"><path d="M2 8h12M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                    <div>
+                      <div class="next-step-title">Connect the SDK</div>
+                      <div class="next-step-desc">Install the PERPLECTRA SDK and wrap your first action.</div>
+                    </div>
+                    <svg viewBox="0 0 14 14" fill="none" style="width:14px;height:14px;color:var(--text-muted);margin-left:auto;"><path d="M5 3l4 4-4 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <div class="section-label">How it works</div>
+              <div>
+                <div class="gs-flow-item"><div class="gs-flow-line"><div class="gs-flow-dot done">1</div><div class="gs-flow-connector"></div></div><div class="gs-flow-content"><div class="gs-flow-label">Create agent</div><div class="gs-flow-sublabel">Register your AI agent and receive an API key.</div></div></div>
+                <div class="gs-flow-item"><div class="gs-flow-line"><div class="gs-flow-dot">2</div><div class="gs-flow-connector"></div></div><div class="gs-flow-content"><div class="gs-flow-label">Install &amp; connect SDK</div><div class="gs-flow-sublabel">Wrap existing agent actions with a single decorator.</div></div></div>
+                <div class="gs-flow-item"><div class="gs-flow-line"><div class="gs-flow-dot">3</div><div class="gs-flow-connector"></div></div><div class="gs-flow-content"><div class="gs-flow-label">Define protected actions</div><div class="gs-flow-sublabel">Specify intent, recovery mode, and risk policy.</div></div></div>
+                <div class="gs-flow-item"><div class="gs-flow-line"><div class="gs-flow-dot">4</div><div class="gs-flow-connector"></div></div><div class="gs-flow-content"><div class="gs-flow-label">Execute &amp; recover</div><div class="gs-flow-sublabel">PERPLECTRA detects failures and applies the recovery strategy automatically.</div></div></div>
+                <div class="gs-flow-item"><div class="gs-flow-line"><div class="gs-flow-dot">5</div></div><div class="gs-flow-content"><div class="gs-flow-label">Verify &amp; receipt</div><div class="gs-flow-sublabel">Independent verification and signed receipts for every run.</div></div></div>
+              </div>
+              <div class="divider"></div>
+              <div class="section-label">What PERPLECTRA is not</div>
+              <div style="display:flex;flex-direction:column;gap:6px;">
+                <div style="font-size:11.5px;color:var(--text-muted);display:flex;align-items:center;gap:8px;"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 2l8 8M10 2l-8 8" stroke="var(--border)" stroke-width="1.4" stroke-linecap="round"/></svg>Not a generic AI chatbot or model marketplace</div>
+                <div style="font-size:11.5px;color:var(--text-muted);display:flex;align-items:center;gap:8px;"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 2l8 8M10 2l-8 8" stroke="var(--border)" stroke-width="1.4" stroke-linecap="round"/></svg>Not an alert-only monitoring dashboard</div>
+                <div style="font-size:11.5px;color:var(--text-muted);display:flex;align-items:center;gap:8px;"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 2l8 8M10 2l-8 8" stroke="var(--border)" stroke-width="1.4" stroke-linecap="round"/></svg>Not a collection of unrelated developer tools</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE 2: CONNECT -->
+      <div class="page" id="page-connect">
+        <div class="page-inner">
+          <div class="page-header">
+            <h1 class="page-title">Connect the SDK</h1>
+            <p class="page-subtitle">Three steps to wrap your first AI agent action with PERPLECTRA protection.</p>
+          </div>
+          <div class="connect-steps">
+            <div class="connect-step active" id="cstep-1" onclick="switchConnectStep(1)"><div class="step-num">1</div><div class="step-label">Install the package</div></div>
+            <div class="connect-step" id="cstep-2" onclick="switchConnectStep(2)"><div class="step-num">2</div><div class="step-label">Configure your API key</div></div>
+            <div class="connect-step" id="cstep-3" onclick="switchConnectStep(3)"><div class="step-num">3</div><div class="step-label">Wrap your first action</div></div>
+          </div>
+          <div class="connect-content-area">
+            <div class="connect-content-header">
+              <div class="connect-content-title" id="connectTitle">Step 1 &mdash; Install</div>
+              <div style="display:flex;gap:8px;">
+                <button class="btn btn-ghost btn-sm" onclick="prevConnectStep()">&larr; Back</button>
+                <button class="btn btn-secondary btn-sm" onclick="nextConnectStep()">Next &rarr;</button>
+              </div>
+            </div>
+            <div class="connect-content-body">
+              <!-- Step 1 -->
+              <div class="connect-content-pane active" id="cpane-1">
+                <div class="illustrative-notice">
+                  <svg viewBox="0 0 14 14" fill="none"><path d="M7 1L1 12h12L7 1z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><path d="M7 5.5v3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="7" cy="10" r=".6" fill="currentColor"/></svg>
+                  Illustrative SDK commands. The package is not yet published to PyPI.
+                </div>
+                <div class="section-label">Package manager</div>
+                <div class="sdk-tabs">
+                  <button class="sdk-tab active" onclick="switchInstallTab(this,'pip')">pip</button>
+                  <button class="sdk-tab" onclick="switchInstallTab(this,'poetry')">poetry</button>
+                  <button class="sdk-tab" onclick="switchInstallTab(this,'conda')">conda</button>
+                </div>
+                <div class="code-block">
+                  <div class="code-block-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this,'pip install perplectra')"><svg viewBox="0 0 12 12" fill="none"><rect x="3.5" y="3.5" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.1"/><path d="M3.5 8.5H2A1.5 1.5 0 0 1 .5 7V2A1.5 1.5 0 0 1 2 .5h5A1.5 1.5 0 0 1 8.5 2v1.5" stroke="currentColor" stroke-width="1.1"/></svg>Copy</button></div>
+                  <div class="code-content" id="installCmd">pip install perplectra</div>
+                </div>
+                <div class="kv-list" style="margin-top:16px;">
+                  <div class="kv-row"><span class="kv-key">Python requirement</span><span class="kv-val">&ge; 3.9</span></div>
+                  <div class="kv-row"><span class="kv-key">Dependencies</span><span class="kv-val">httpx, pydantic, tenacity</span></div>
+                  <div class="kv-row"><span class="kv-key">Async support</span><span class="kv-val">asyncio, anyio</span></div>
+                </div>
+              </div>
+              <!-- Step 2 -->
+              <div class="connect-content-pane" id="cpane-2">
+                <div class="illustrative-notice">
+                  <svg viewBox="0 0 14 14" fill="none"><path d="M7 1L1 12h12L7 1z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><path d="M7 5.5v3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="7" cy="10" r=".6" fill="currentColor"/></svg>
+                  Replace the placeholder with the key generated on the Get Started page.
+                </div>
+                <div class="section-label">Environment variable</div>
+                <div class="code-block" style="margin-bottom:16px;">
+                  <div class="code-block-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this,'export PERPLECTRA_API_KEY=pxk_live_your_key_here')"><svg viewBox="0 0 12 12" fill="none"><rect x="3.5" y="3.5" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.1"/><path d="M3.5 8.5H2A1.5 1.5 0 0 1 .5 7V2A1.5 1.5 0 0 1 2 .5h5A1.5 1.5 0 0 1 8.5 2v1.5" stroke="currentColor" stroke-width="1.1"/></svg>Copy</button></div>
+                  <div class="code-content">export PERPLECTRA_API_KEY=<span class="st">"pxk_live_your_key_here"</span></div>
+                </div>
+                <div class="section-label">Or set in code (non-production only)</div>
+                <div class="code-block">
+                  <div class="code-block-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this,'import perplectra\nperplectra.configure(api_key=&quot;pxk_live_your_key_here&quot;)')"><svg viewBox="0 0 12 12" fill="none"><rect x="3.5" y="3.5" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.1"/><path d="M3.5 8.5H2A1.5 1.5 0 0 1 .5 7V2A1.5 1.5 0 0 1 2 .5h5A1.5 1.5 0 0 1 8.5 2v1.5" stroke="currentColor" stroke-width="1.1"/></svg>Copy</button></div>
+                  <div class="code-content"><span class="kw">import</span> perplectra
+
+perplectra.<span class="fn">configure</span>(
+    api_key=<span class="st">"pxk_live_your_key_here"</span>
+)</div>
+                </div>
+              </div>
+              <!-- Step 3 -->
+              <div class="connect-content-pane" id="cpane-3">
+                <div class="illustrative-notice">
+                  <svg viewBox="0 0 14 14" fill="none"><path d="M7 1L1 12h12L7 1z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><path d="M7 5.5v3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="7" cy="10" r=".6" fill="currentColor"/></svg>
+                  Example code &mdash; the SDK is not yet implemented or published. These patterns illustrate the planned decorator API design only.
+                </div>
+                <div class="section-label">Wrap an existing action</div>
+                <div class="code-block">
+                  <div class="code-block-header"><span class="code-lang">python</span><button class="copy-btn" id="mainCodeCopyBtn" onclick="copyMainCode(this)"><svg viewBox="0 0 12 12" fill="none"><rect x="3.5" y="3.5" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.1"/><path d="M3.5 8.5H2A1.5 1.5 0 0 1 .5 7V2A1.5 1.5 0 0 1 2 .5h5A1.5 1.5 0 0 1 8.5 2v1.5" stroke="currentColor" stroke-width="1.1"/></svg>Copy</button></div>
+                  <div class="code-content" id="mainCodeBlock"><span class="cm"># Before: an unprotected agent action</span>
+<span class="kw">def</span> <span class="fn">scale_up_instances</span>(region: str, count: int):
+    <span class="cm"># ... your existing logic</span>
+    <span class="kw">pass</span>
+
+<span class="cm"># After: wrapped with PERPLECTRA protection</span>
+<span class="kw">import</span> perplectra
+<span class="kw">from</span> perplectra <span class="kw">import</span> RecoveryMode
+
+<span class="at">@perplectra.protect</span>(
+    intent=<span class="st">"Scale up EC2 instances in the given region"</span>,
+    recovery_mode=RecoveryMode.<span class="va">AUTO_ROLLBACK</span>,
+    target_env=<span class="st">"production"</span>,
+    max_retries=<span class="nu">2</span>,
+)
+<span class="kw">def</span> <span class="fn">scale_up_instances</span>(region: str, count: int):
+    <span class="cm"># Your existing logic -- unchanged.</span>
+    <span class="cm"># PERPLECTRA captures baseline, validates intent,</span>
+    <span class="cm"># monitors execution, and recovers on failure.</span>
+    <span class="kw">pass</span>
+
+<span class="cm"># Execute normally -- PERPLECTRA handles the rest.</span>
+scale_up_instances(region=<span class="st">"us-east-1"</span>, count=<span class="nu">3</span>)</div>
+                </div>
+                <div class="validation-list" style="margin-top:16px;">
+                  <div class="validation-item"><svg class="validation-icon info" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="6.5" stroke="currentColor" stroke-width="1.1"/><path d="M7.5 6.5v4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="7.5" cy="5" r=".6" fill="currentColor"/></svg>The <code style="font-family:var(--font-mono);font-size:10.5px;color:var(--blue);">@perplectra.protect</code> decorator preserves your function's original signature and return type.</div>
+                  <div class="validation-item"><svg class="validation-icon info" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="6.5" stroke="currentColor" stroke-width="1.1"/><path d="M7.5 6.5v4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="7.5" cy="5" r=".6" fill="currentColor"/></svg>Planned: supports both synchronous and <code style="font-family:var(--font-mono);font-size:10.5px;color:var(--blue);">async</code> functions.</div>
+                  <div class="validation-item"><svg class="validation-icon info" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="6.5" stroke="currentColor" stroke-width="1.1"/><path d="M7.5 6.5v4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="7.5" cy="5" r=".6" fill="currentColor"/></svg>Planned: recovery is applied only when PERPLECTRA detects a verified failure condition.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE 3: PROTECT ACTIONS -->
+      <div class="page" id="page-protect">
+        <div class="page-inner">
+          <div class="page-header">
+            <h1 class="page-title">Protect an action</h1>
+            <p class="page-subtitle">Define the intent, target, and recovery policy for an AI agent action before execution.</p>
+          </div>
+          <div class="protect-layout">
+            <div class="card" style="padding:24px;">
+              <div class="field">
+                <label class="field-label" for="actionName">Action name</label>
+                <input type="text" id="actionName" value="scale_up_instances" />
+                <div class="field-hint">Must match the function name in your codebase.</div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="actionIntent">Intended outcome</label>
+                <textarea id="actionIntent" rows="2">Scale EC2 instances in us-east-1 from 3 to 6 to handle increased load.</textarea>
+              </div>
+              <div class="field-row">
+                <div class="field">
+                  <label class="field-label" for="actionEnv">Target environment</label>
+                  <select id="actionEnv"><option value="production" selected>Production</option><option value="staging">Staging</option><option value="dev">Development</option><option value="sandbox">Sandbox</option></select>
+                </div>
+                <div class="field">
+                  <label class="field-label" for="actionTarget">System / resource</label>
+                  <input type="text" id="actionTarget" value="aws::ec2::us-east-1" />
+                </div>
+              </div>
+              <div class="field">
+                <label class="field-label">Recovery mode</label>
+                <div class="recovery-modes">
+                  <div class="recovery-mode selected" id="rm-auto" onclick="selectRecoveryMode('auto')"><div class="recovery-mode-radio"></div><div><div class="recovery-mode-label">Auto rollback</div><div class="recovery-mode-desc">Automatically rolls back to the last known-good state if failure is verified.</div></div></div>
+                  <div class="recovery-mode" id="rm-compensate" onclick="selectRecoveryMode('compensate')"><div class="recovery-mode-radio"></div><div><div class="recovery-mode-label">Compensating action</div><div class="recovery-mode-desc">Execute a defined compensating operation to undo side effects.</div></div></div>
+                  <div class="recovery-mode" id="rm-halt" onclick="selectRecoveryMode('halt')"><div class="recovery-mode-radio"></div><div><div class="recovery-mode-label">Safe halt</div><div class="recovery-mode-desc">Halt and page the on-call engineer. No automated recovery attempted.</div></div></div>
+                </div>
+              </div>
+              <div class="field">
+                <label class="field-label">Risk classification</label>
+                <div class="risk-selector">
+                  <div class="risk-option" id="risk-low" onclick="selectRisk('low')"><div class="risk-option-label" style="color:var(--green);">Low</div><div class="risk-option-desc">Reversible, isolated</div></div>
+                  <div class="risk-option selected" id="risk-medium" onclick="selectRisk('medium')"><div class="risk-option-label" style="color:var(--amber);">Medium</div><div class="risk-option-desc">Partial impact possible</div></div>
+                  <div class="risk-option" id="risk-high" onclick="selectRisk('high')"><div class="risk-option-label" style="color:var(--red);">High</div><div class="risk-option-desc">Broad system effect</div></div>
+                </div>
+              </div>
+              <button class="adv-toggle" id="advBtn" onclick="toggleAdv()">
+                <svg viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Advanced options
+              </button>
+              <div class="adv-section" id="advSection">
+                <div class="field-row">
+                  <div class="field"><label class="field-label">Max retries</label><input type="text" value="2" /></div>
+                  <div class="field"><label class="field-label">Timeout (seconds)</label><input type="text" value="120" /></div>
+                </div>
+                <div class="field">
+                  <label class="field-label">Human approval required</label>
+                  <select><option>Never</option><option selected>On high-risk actions</option><option>Always</option></select>
+                </div>
+              </div>
+              <div class="divider"></div>
+              <div style="background:var(--bg-surface-2);border:1px solid var(--blue-border);border-radius:var(--radius-md);padding:14px;margin-bottom:14px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                  <div style="font-size:12px;font-weight:600;color:var(--text-primary);display:flex;align-items:center;gap:6px;">
+                    <span class="badge badge-blue" style="font-size:9.5px;padding:1px 6px;">LIVE ENGINE</span>
+                    Local Recovery Workflow
+                  </div>
+                  <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--amber);cursor:pointer;" title="Inject failure after controlled file write to test automatic rollback & independent SHA-256 verification">
+                    <input type="checkbox" id="failInjectionCheck" checked style="accent-color:var(--amber);" />
+                    <span>Inject failure</span>
+                  </label>
+                </div>
+                <div style="font-size:11px;color:var(--text-secondary);margin-bottom:12px;line-height:1.4;">
+                  Executes a controlled modification to <code style="font-family:var(--font-mono);font-size:10.5px;color:var(--blue);">workspace/test_files/target.txt</code>, captures baseline hash, triggers automatic rollback, and independently verifies cryptographic integrity.
+                </div>
+                <button class="btn btn-primary" id="btnExecuteReal" onclick="executeRealAction()" style="width:100%;justify-content:center;background:linear-gradient(135deg,#55A8FF 0%,#58D6E8 100%);color:#101113;font-weight:600;border:none;">
+                  <svg viewBox="0 0 14 14" fill="none" style="width:14px;height:14px;"><path d="M3 2l9 5-9 5V2z" fill="currentColor"/></svg>
+                  Execute Real Recovery Workflow &rarr;
+                </button>
+              </div>
+
+              <button class="btn" onclick="runProtectedAction()" style="width:100%;justify-content:center;border:1px solid var(--border);background:transparent;color:var(--text-secondary);" title="Opens the illustrative simulated trace.">
+                Simulate Demo Trace &rarr;
+              </button>
+              <div style="margin-top:8px;text-align:center;font-size:10.5px;color:var(--text-muted);">Opens illustrative AWS EC2 demo trace without invoking the backend.</div>
+            </div>
+            <div>
+              <div class="section-label">What PERPLECTRA will validate</div>
+              <div class="card">
+                <div class="validation-list">
+                  <div class="validation-item"><svg class="validation-icon info" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="6.5" stroke="currentColor" stroke-width="1.1"/><path d="M7.5 6.5v4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="7.5" cy="5" r=".6" fill="currentColor"/></svg>Intent matches registered action signature</div>
+                  <div class="validation-item"><svg class="validation-icon info" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="6.5" stroke="currentColor" stroke-width="1.1"/><path d="M7.5 6.5v4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="7.5" cy="5" r=".6" fill="currentColor"/></svg>Baseline state captured before execution</div>
+                  <div class="validation-item"><svg class="validation-icon info" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="6.5" stroke="currentColor" stroke-width="1.1"/><path d="M7.5 6.5v4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="7.5" cy="5" r=".6" fill="currentColor"/></svg>Recovery mode applicable to target environment</div>
+                  <div class="validation-item"><svg class="validation-icon info" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="6.5" stroke="currentColor" stroke-width="1.1"/><path d="M7.5 6.5v4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="7.5" cy="5" r=".6" fill="currentColor"/></svg>Risk classification acknowledged</div>
+                  <div class="validation-item"><svg class="validation-icon info" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="6.5" stroke="currentColor" stroke-width="1.1"/><path d="M7.5 6.5v4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="7.5" cy="5" r=".6" fill="currentColor"/></svg>Execution only proceeds when all checks pass</div>
+                </div>
+              </div>
+              <div class="divider" style="margin:16px 0;"></div>
+              <div class="section-label">Current configuration</div>
+              <div class="card">
+                <div class="kv-list">
+                  <div class="kv-row"><span class="kv-key">Recovery mode</span><span class="kv-val" id="cfgRecovery" style="color:var(--blue);">AUTO_ROLLBACK</span></div>
+                  <div class="kv-row"><span class="kv-key">Risk</span><span class="kv-val" id="cfgRisk" style="color:var(--amber);">MEDIUM</span></div>
+                  <div class="kv-row"><span class="kv-key">Environment</span><span class="kv-val">production</span></div>
+                  <div class="kv-row"><span class="kv-key">Verification</span><span class="kv-val" style="color:var(--green);">INDEPENDENT</span></div>
+                </div>
+              </div>
+              <div style="margin-top:12px;">
+                <div class="illustrative-notice" style="font-size:10.5px;">
+                  <svg viewBox="0 0 14 14" fill="none"><path d="M7 1L1 12h12L7 1z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><path d="M7 5.5v3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="7" cy="10" r=".6" fill="currentColor"/></svg>
+                  All data and actions are illustrative. No real execution will occur.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE 4: RECOVER & VERIFY -->
+      <div class="page" id="page-recover">
+        <div class="page-inner wide">
+          <div class="page-header">
+            <h1 class="page-title">Recover &amp; Verify</h1>
+            <p class="page-subtitle">Illustrative execution trace &mdash; <code style="font-family:var(--font-mono);font-size:11px;color:var(--blue);">exec_9f3b2d1a</code> &middot; <span style="color:var(--text-muted);">scale_up_instances &middot; production &middot; 2026-10-26 13:47 UTC</span></p>
+          </div>
+          <div class="rv-layout">
+            <div>
+              <div class="section-label">Execution timeline</div>
+              <div class="timeline">
+                <div class="tl-item" onclick="selectTlStep(1)" id="tl-1"><div class="tl-line-col"><div class="tl-dot success"><svg viewBox="0 0 10 10" fill="none"><path d="M2.5 5l2 2 3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="tl-connector"></div></div><div class="tl-content"><div class="tl-step-name">Request validated</div><div class="tl-step-detail">Intent and config checks passed.</div><div class="tl-step-time">13:47:02.114</div></div></div>
+                <div class="tl-item" onclick="selectTlStep(2)" id="tl-2"><div class="tl-line-col"><div class="tl-dot success"><svg viewBox="0 0 10 10" fill="none"><path d="M2.5 5l2 2 3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="tl-connector"></div></div><div class="tl-content"><div class="tl-step-name">Baseline captured</div><div class="tl-step-detail">EC2 state snapshot recorded.</div><div class="tl-step-time">13:47:02.389</div></div></div>
+                <div class="tl-item" onclick="selectTlStep(3)" id="tl-3"><div class="tl-line-col"><div class="tl-dot success"><svg viewBox="0 0 10 10" fill="none"><path d="M2.5 5l2 2 3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="tl-connector"></div></div><div class="tl-content"><div class="tl-step-name">Action executed</div><div class="tl-step-detail">RunInstances API call dispatched.</div><div class="tl-step-time">13:47:03.017</div></div></div>
+                <div class="tl-item" onclick="selectTlStep(4)" id="tl-4"><div class="tl-line-col"><div class="tl-dot failure"><svg viewBox="0 0 10 10" fill="none"><path d="M3 3l4 4M7 3l-4 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></div><div class="tl-connector"></div></div><div class="tl-content"><div class="tl-step-name">Failure detected</div><div class="tl-step-detail">2 of 3 instances entered error state.</div><div class="tl-step-time">13:47:18.554</div></div></div>
+                <div class="tl-item" onclick="selectTlStep(5)" id="tl-5"><div class="tl-line-col"><div class="tl-dot warning"><svg viewBox="0 0 10 10" fill="none"><path d="M5 2v3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="5" cy="7.5" r=".6" fill="currentColor"/></svg></div><div class="tl-connector"></div></div><div class="tl-content"><div class="tl-step-name">Recovery selected</div><div class="tl-step-detail">AUTO_ROLLBACK &middot; confidence 0.94</div><div class="tl-step-time">13:47:18.701</div></div></div>
+                <div class="tl-item" onclick="selectTlStep(6)" id="tl-6"><div class="tl-line-col"><div class="tl-dot success"><svg viewBox="0 0 10 10" fill="none"><path d="M2.5 5l2 2 3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="tl-connector"></div></div><div class="tl-content"><div class="tl-step-name">Recovery performed</div><div class="tl-step-detail">Failed instances terminated. Count restored to 3.</div><div class="tl-step-time">13:47:29.883</div></div></div>
+                <div class="tl-item active" onclick="selectTlStep(7)" id="tl-7"><div class="tl-line-col"><div class="tl-dot success"><svg viewBox="0 0 10 10" fill="none"><path d="M2.5 5l2 2 3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div><div class="tl-content"><div class="tl-step-name">Verification complete</div><div class="tl-step-detail">Independent probe confirmed restored state.</div><div class="tl-step-time">13:47:34.112</div></div></div>
+              </div>
+              <div style="margin-top:16px;" class="illustrative-notice">
+                <svg viewBox="0 0 14 14" fill="none"><path d="M7 1L1 12h12L7 1z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><path d="M7 5.5v3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="7" cy="10" r=".6" fill="currentColor"/></svg>
+                Illustrative demo trace. Not a real execution.
+              </div>
+            </div>
+            <div>
+              <div class="rv-detail-panel">
+                <div class="rv-detail-header">
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <div class="rv-detail-title" id="rvTitle">Verification complete</div>
+                    <span class="sim-tag">Simulated</span>
+                  </div>
+                  <span class="badge badge-green" id="rvBadge"><span class="badge-dot"></span>Recovery verified</span>
+                </div>
+                <div class="rv-detail-body" id="rvBody">
+                  <div class="rv-status-banner success">
+                    <div class="rv-status-icon"><svg viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                    <div><div class="rv-status-label">Recovery verified</div><div class="rv-status-sublabel">Independent verification confirmed the system is in a known-good state. No human intervention required.</div></div>
+                  </div>
+                  <div class="section-label" style="margin-bottom:10px;">Before &amp; after state</div>
+                  <div class="before-after" style="margin-bottom:18px;">
+                    <div class="ba-panel"><div class="ba-label before">Before failure</div><div class="ba-content">running: 3
+pending: 0
+desired: 3
+az: us-east-1a</div></div>
+                    <div style="display:flex;align-items:center;"><svg viewBox="0 0 16 16" fill="none" style="width:16px;height:16px;color:var(--text-muted);"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                    <div class="ba-panel"><div class="ba-label after">After recovery</div><div class="ba-content">running: 3
+pending: 0
+desired: 3
+az: us-east-1a</div></div>
+                  </div>
+                  <div class="section-label" style="margin-bottom:10px;">Verification evidence</div>
+                  <div class="evidence-grid" style="margin-bottom:18px;">
+                    <div class="evidence-card"><div class="evidence-label">Probe type</div><div class="evidence-value">EC2 describe-instances</div></div>
+                    <div class="evidence-card"><div class="evidence-label">Health endpoint</div><div class="evidence-value ok">HTTP 200 OK</div></div>
+                    <div class="evidence-card"><div class="evidence-label">Instance count</div><div class="evidence-value ok">3 / 3 running</div></div>
+                    <div class="evidence-card"><div class="evidence-label">Verification latency</div><div class="evidence-value">4.229 s</div></div>
+                  </div>
+                  <div class="section-label" style="margin-bottom:10px;">Recovery detail</div>
+                  <div class="kv-list">
+                    <div class="kv-row"><span class="kv-key">Strategy applied</span><span class="kv-val" style="color:var(--blue);">AUTO_ROLLBACK</span></div>
+                    <div class="kv-row"><span class="kv-key">Strategy confidence</span><span class="kv-val">0.94</span></div>
+                    <div class="kv-row"><span class="kv-key">Failed instances</span><span class="kv-val" style="color:var(--red);">i-0a3f7b8c9d, i-0b2e6a7f1c</span></div>
+                    <div class="kv-row"><span class="kv-key">Recovery duration</span><span class="kv-val">11.3 s</span></div>
+                    <div class="kv-row"><span class="kv-key">Human intervention</span><span class="kv-val" style="color:var(--green);">Not required</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE 5: EXECUTION RECEIPTS -->
+      <div class="page" id="page-receipts">
+        <div class="page-inner wide">
+          <div class="page-header">
+            <h1 class="page-title">Execution Receipts</h1>
+            <p class="page-subtitle" id="receiptsPageSubtitle">Audit log of protected actions. Persisted live execution receipts are cryptographically verified and stored in SQLite WAL database.</p>
+          </div>
+          <div class="receipts-layout">
+            <div class="receipts-list-panel">
+              <div class="receipts-list-header">
+                <input class="receipts-search" placeholder="Search by action, ID, environment&hellip;" oninput="filterReceipts(this.value)" />
+              </div>
+              <div class="receipts-filter">
+                <button class="filter-chip active" onclick="setFilter(this,'all')">All</button>
+                <button class="filter-chip" onclick="setFilter(this,'live')">Live Receipts</button>
+                <button class="filter-chip" onclick="setFilter(this,'demo')">Demo Records</button>
+                <button class="filter-chip" onclick="setFilter(this,'verified')">Verified</button>
+                <button class="filter-chip" onclick="setFilter(this,'recovered')">Recovered</button>
+                <button class="filter-chip" onclick="setFilter(this,'failed')">Failed</button>
+              </div>
+              <div id="receiptsList"></div>
+            </div>
+            <div class="receipt-detail-panel">
+              <div class="receipt-detail-header">
+                <div>
+                  <div class="receipt-detail-id" id="receiptDetailId">exec_9f3b2d1a</div>
+                  <div class="receipt-detail-title" id="receiptDetailTitle">scale_up_instances</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span id="receiptTypeBadge" class="demo-tag">demo record</span>
+                  <span class="badge badge-green" id="receiptDetailBadge"><span class="badge-dot"></span>Recovery verified</span>
+                </div>
+              </div>
+              <div class="receipt-tabs">
+                <button class="receipt-tab active" onclick="switchRtab(this,'overview')">Overview</button>
+                <button class="receipt-tab" onclick="switchRtab(this,'evidence')">Evidence</button>
+                <button class="receipt-tab" onclick="switchRtab(this,'audit')">Audit</button>
+              </div>
+              <div class="rtab-content active" id="rtab-overview">
+                <div id="receiptOverviewNotice" class="illustrative-notice" style="margin-bottom:14px;">
+                  <svg viewBox="0 0 14 14" fill="none"><path d="M7 1L1 12h12L7 1z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><path d="M7 5.5v3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="7" cy="10" r=".6" fill="currentColor"/></svg>
+                  <span id="receiptOverviewNoticeText">Illustrative demo record. No real execution data is stored or retrieved.</span>
+                </div>
+                <div class="rv-status-banner success" id="receiptBanner" style="margin-bottom:16px;">
+                  <div class="rv-status-icon"><svg viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                  <div><div class="rv-status-label" id="receiptStatusLabel">Recovery verified</div><div class="rv-status-sublabel" id="receiptStatusDesc">Independent verification confirmed system state. Receipt is signed and sealed.</div></div>
+                </div>
+                <div class="kv-list" id="receiptOverviewKv">
+                  <div class="kv-row"><span class="kv-key">Execution ID</span><span class="kv-val">exec_9f3b2d1a</span></div>
+                  <div class="kv-row"><span class="kv-key">Agent</span><span class="kv-val">infra-provisioner-01</span></div>
+                  <div class="kv-row"><span class="kv-key">Action</span><span class="kv-val">scale_up_instances</span></div>
+                  <div class="kv-row"><span class="kv-key">Environment</span><span class="kv-val">production</span></div>
+                  <div class="kv-row"><span class="kv-key">Timestamp</span><span class="kv-val">2026-10-26 13:47 UTC</span></div>
+                  <div class="kv-row"><span class="kv-key">Recovery mode</span><span class="kv-val" style="color:var(--blue);">AUTO_ROLLBACK</span></div>
+                  <div class="kv-row"><span class="kv-key">Final status</span><span class="kv-val" style="color:var(--green);">RECOVERY_VERIFIED</span></div>
+                </div>
+              </div>
+              <div class="rtab-content" id="rtab-evidence">
+                <div id="receiptEvidenceNotice" class="illustrative-notice" style="margin-bottom:14px;">
+                  <svg viewBox="0 0 14 14" fill="none"><path d="M7 1L1 12h12L7 1z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><path d="M7 5.5v3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="7" cy="10" r=".6" fill="currentColor"/></svg>
+                  <span id="receiptEvidenceNoticeText">Simulated state snapshots. All JSON data is hardcoded for illustrative purposes only.</span>
+                </div>
+                <div id="receiptEvidenceBody">
+                  <div class="section-label" style="margin-bottom:10px;">Before state</div>
+                  <div class="code-block" style="margin-bottom:14px;">
+                    <div class="code-block-header"><span class="code-lang">json</span></div>
+                    <div class="code-content" style="font-size:11px;">{
+  "running": 3, "pending": 0, "desired": 3,
+  "az": "us-east-1a",
+  "ids": ["i-0c1d2e3f4a","i-0d4e5f6a7b","i-0e5f6a7b8c"],
+  "snapshot_ts": "2026-10-26T13:47:02.389Z"
+}</div>
+                  </div>
+                  <div class="section-label" style="margin-bottom:10px;">After recovery state</div>
+                  <div class="code-block" style="margin-bottom:14px;">
+                    <div class="code-block-header"><span class="code-lang">json</span></div>
+                    <div class="code-content" style="font-size:11px;">{
+  "running": 3, "pending": 0, "desired": 3,
+  "az": "us-east-1a",
+  "ids": ["i-0c1d2e3f4a","i-0d4e5f6a7b","i-0e5f6a7b8c"],
+  "health_check": "HTTP 200",
+  "snapshot_ts": "2026-10-26T13:47:34.112Z"
+}</div>
+                  </div>
+                  <div class="section-label" style="margin-bottom:10px;">Verification result</div>
+                  <div class="evidence-grid">
+                    <div class="evidence-card"><div class="evidence-label">State match</div><div class="evidence-value ok">PASS</div></div>
+                    <div class="evidence-card"><div class="evidence-label">Health probe</div><div class="evidence-value ok">HTTP 200</div></div>
+                    <div class="evidence-card"><div class="evidence-label">Instances healthy</div><div class="evidence-value ok">3/3</div></div>
+                    <div class="evidence-card"><div class="evidence-label">Verifier node</div><div class="evidence-value">verifier-us-east-1</div></div>
+                  </div>
+                </div>
+              </div>
+              <div class="rtab-content" id="rtab-audit">
+                <div id="receiptAuditNotice" class="illustrative-notice" style="margin-bottom:14px;">
+                  <svg viewBox="0 0 14 14" fill="none"><path d="M7 1L1 12h12L7 1z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><path d="M7 5.5v3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="7" cy="10" r=".6" fill="currentColor"/></svg>
+                  <span id="receiptAuditNoticeText">Illustrative receipt. Real receipts carry cryptographic signatures and tamper-detection.</span>
+                </div>
+                <div id="receiptAuditBody">
+                  <div class="kv-list" style="margin-bottom:16px;">
+                    <div class="kv-row"><span class="kv-key">Receipt version</span><span class="kv-val">1.0</span></div>
+                    <div class="kv-row"><span class="kv-key">Signed by</span><span class="kv-val">perplectra-signer-v1</span></div>
+                    <div class="kv-row"><span class="kv-key">Signature algorithm</span><span class="kv-val">Ed25519</span></div>
+                    <div class="kv-row"><span class="kv-key">Receipt hash (SHA-256)</span><span class="kv-val" style="font-size:10px;word-break:break-all;">a3f8d2e7b1c94f0e6a5d3c8b2f1e7a9d4b6c0f2e8a3d5b7c9f1e4a6d2b8c3f0</span></div>
+                    <div class="kv-row"><span class="kv-key">SDK version</span><span class="kv-val">0.1.0</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+                  Illustrative receipt. Real receipts carry cryptographic signatures and tamper-detection.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+<script>
+  let currentApiKey = sessionStorage.getItem('perplectra_api_key') || '';
+  let currentAgentId = sessionStorage.getItem('perplectra_agent_id') || '';
+
+  const pages=['get-started','connect','protect','recover','receipts'];
+  const pageNames={'get-started':'Get Started','connect':'Connect','protect':'Protect Actions','recover':'Recover & Verify','receipts':'Execution Receipts'};
+  function navigateTo(p){pages.forEach(x=>{const e=document.getElementById('page-'+x),n=document.getElementById('nav-'+x);if(e)e.classList.toggle('active',x===p);if(n)n.classList.toggle('active',x===p);});document.getElementById('topbarPageName').textContent=pageNames[p]||p;closeMobileSidebar();}
+  function openMobileSidebar(){document.getElementById('sidebar').classList.add('open');document.getElementById('sidebarOverlay').classList.add('open');}
+  function closeMobileSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebarOverlay').classList.remove('open');}
+
+  function updateConnectedStatus(agentId){
+    const dot=document.getElementById('statusDot');
+    const txt=document.getElementById('statusText');
+    if(dot){dot.style.background='var(--green)';dot.style.boxShadow='0 0 6px rgba(82,214,160,0.6)';}
+    if(txt){txt.textContent='Connected ('+agentId+')';}
+    const topDemo=document.querySelector('.topbar-demo-badge');
+    if(topDemo){topDemo.textContent='Live Backend';topDemo.style.borderColor='var(--green-border)';topDemo.style.color='var(--green)';}
+  }
+
+  function parseApiError(errData, fallbackMsg){
+    if(!errData) return fallbackMsg;
+    if(typeof errData === 'string') return errData;
+    if(errData.detail){
+      if(Array.isArray(errData.detail)){
+        return errData.detail.map(d => {
+          if(typeof d === 'string') return d;
+          if(d && typeof d === 'object'){
+            const field = Array.isArray(d.loc) && d.loc.length > 0 ? d.loc[d.loc.length - 1] + ': ' : '';
+            return field + (d.msg || JSON.stringify(d));
+          }
+          return String(d);
+        }).join('; ');
+      }
+      if(typeof errData.detail === 'string') return errData.detail;
+      if(typeof errData.detail === 'object') return JSON.stringify(errData.detail);
+    }
+    if(errData.message && typeof errData.message === 'string') return errData.message;
+    return fallbackMsg;
+  }
+
+  async function createAgent(){
+    const nameEl = document.getElementById('agentName');
+    const name = nameEl.value.trim();
+    const errBox = document.getElementById('createAgentError');
+    const errMsgEl = document.getElementById('createAgentErrorMessage');
+    if(errBox) errBox.style.display = 'none';
+
+    if(!name){
+      nameEl.focus();
+      nameEl.style.borderColor = 'var(--red)';
+      setTimeout(() => nameEl.style.borderColor = '', 1500);
+      if(errBox && errMsgEl){
+        errMsgEl.textContent = 'Please enter an agent name.';
+        errBox.style.display = 'block';
+      }
+      return;
+    }
+
+    const type = document.getElementById('agentType').value || 'Infrastructure';
+    const env = document.getElementById('agentEnv').value || 'dev';
+    const btn = document.getElementById('createAgentBtn');
+    const originalBtnHtml = '<svg viewBox="0 0 14 14" fill="none"><path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg> Create agent';
+
+    btn.disabled = true;
+    btn.textContent = 'Registering on backend...';
+
+    try {
+      const res = await fetch('/api/agents', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name, type, env})
+      });
+
+      if(!res.ok){
+        let errJson = null;
+        try {
+          errJson = await res.json();
+        } catch(_) {
+          const rawText = await res.text().catch(() => '');
+          throw new Error(rawText || `Registration failed (HTTP ${res.status})`);
+        }
+        const parsed = parseApiError(errJson, `Registration failed (HTTP ${res.status})`);
+        throw new Error(parsed);
+      }
+
+      const data = await res.json();
+      currentApiKey = data.api_key;
+      currentAgentId = data.agent_id;
+      sessionStorage.setItem('perplectra_api_key', currentApiKey);
+      sessionStorage.setItem('perplectra_agent_id', currentAgentId);
+      document.getElementById('apiKeyDisplay').textContent = data.api_key;
+      document.getElementById('apiKeyResult').style.display = 'block';
+      updateConnectedStatus(data.agent_id);
+
+      btn.innerHTML = '<svg viewBox="0 0 14 14" fill="none" style="width:14px;height:14px;"><path d="M2 7l3.5 3.5L12 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> Agent registered';
+      loadLiveReceipts();
+    } catch(err) {
+      const message = err.message || 'An unexpected error occurred during registration.';
+      if(errBox && errMsgEl){
+        errMsgEl.textContent = message;
+        errBox.style.display = 'block';
+      } else {
+        alert('Registration error: ' + message);
+      }
+      btn.innerHTML = originalBtnHtml;
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function copyApiKey(btn){
+    const key=document.getElementById('apiKeyDisplay').textContent;
+    navigator.clipboard.writeText(key).catch(()=>{});
+    const orig=btn.innerHTML;btn.classList.add('copied');
+    btn.innerHTML='<svg viewBox="0 0 12 12" fill="none" style="width:12px;height:12px;"><path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg> Copied';
+    setTimeout(()=>{btn.classList.remove('copied');btn.innerHTML=orig;},2000);
+  }
+
+  let cStep=1;
+  const cTitles={1:'Step 1 - Install',2:'Step 2 - Configure API key',3:'Step 3 - Wrap your first action'};
+  function switchConnectStep(s){
+    cStep=s;
+    [1,2,3].forEach(i=>{document.getElementById('cstep-'+i).classList.toggle('active',i===s);document.getElementById('cpane-'+i).classList.toggle('active',i===s);});
+    document.getElementById('connectTitle').textContent=cTitles[s];
+  }
+  function nextConnectStep(){if(cStep<3)switchConnectStep(cStep+1);}
+  function prevConnectStep(){if(cStep>1)switchConnectStep(cStep-1);}
+  function switchInstallTab(el,m){
+    el.parentElement.querySelectorAll('.sdk-tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');
+    const c={pip:'pip install perplectra',poetry:'poetry add perplectra',conda:'conda install -c conda-forge perplectra'};
+    document.getElementById('installCmd').textContent=c[m];
+  }
+  function copyCode(btn,text){
+    navigator.clipboard.writeText(text).catch(()=>{});
+    const orig=btn.innerHTML;btn.classList.add('copied');
+    btn.innerHTML='<svg viewBox="0 0 12 12" fill="none" style="width:12px;height:12px;"><path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg> Copied';
+    setTimeout(()=>{btn.classList.remove('copied');btn.innerHTML=orig;},2000);
+  }
+  function copyMainCode(btn){copyCode(btn,document.getElementById('mainCodeBlock').textContent);}
+
+  function selectRecoveryMode(m){
+    ['auto','compensate','halt'].forEach(x=>document.getElementById('rm-'+x).classList.toggle('selected',x===m));
+    const l={auto:'AUTO_ROLLBACK',compensate:'COMPENSATING_ACTION',halt:'SAFE_HALT'};
+    document.getElementById('cfgRecovery').textContent=l[m];
+  }
+  function selectRisk(r){
+    ['low','medium','high'].forEach(x=>document.getElementById('risk-'+x).classList.toggle('selected',x===r));
+    const l={low:'LOW',medium:'MEDIUM',high:'HIGH'},c={low:'var(--green)',medium:'var(--amber)',high:'var(--red)'};
+    const el=document.getElementById('cfgRisk');el.textContent=l[r];el.style.color=c[r];
+  }
+  function toggleAdv(){document.getElementById('advBtn').classList.toggle('open');document.getElementById('advSection').classList.toggle('open');}
+  function runProtectedAction(){navigateTo('recover');}
+
+  // ── Real Execution Engine Integration ─────────────────────────────────────────
+  let liveTimelineData = null;
+
+  async function executeRealAction(){
+    if(!currentApiKey){
+      try {
+        const reg = await fetch('/api/agents', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({name: 'local-dev-agent', type: 'Infrastructure', env: 'dev'})
+        });
+        if(reg.ok){
+          const ad = await reg.json();
+          currentApiKey = ad.api_key;
+          currentAgentId = ad.agent_id;
+          sessionStorage.setItem('perplectra_api_key', currentApiKey);
+          sessionStorage.setItem('perplectra_agent_id', currentAgentId);
+          updateConnectedStatus(ad.agent_id);
+        }
+      } catch(e){}
+    }
+    if(!currentApiKey){
+      alert('Please create and register an agent first on Get Started.');
+      navigateTo('get-started');
+      return;
+    }
+    const btn=document.getElementById('btnExecuteReal');
+    const origHtml=btn.innerHTML;
+    btn.disabled=true;
+    btn.textContent='Executing & Verifying with Recovery Engine...';
+    const failInj = document.getElementById('failInjectionCheck') ? document.getElementById('failInjectionCheck').checked : true;
+    try {
+      const res = await fetch('/api/executions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + currentApiKey
+        },
+        body: JSON.stringify({
+          action_name: 'modify_test_file',
+          intent: document.getElementById('actionIntent').value || 'Controlled modification of target.txt in isolated workspace',
+          env: 'dev',
+          policy: 'RESTORE_BASELINE',
+          fail_injection: failInj
+        })
+      });
+      if(!res.ok){
+        let errJson = null;
+        try {
+          errJson = await res.json();
+        } catch(_) {
+          const rawText = await res.text().catch(() => '');
+          throw new Error(rawText || `Execution failed (HTTP ${res.status})`);
+        }
+        const parsed = parseApiError(errJson, `Execution failed (HTTP ${res.status})`);
+        throw new Error(parsed);
+      }
+      const data = await res.json();
+      renderRealExecution(data);
+      addLiveReceipt(data);
+      navigateTo('recover');
+    } catch(err) {
+      alert('Execution failed: ' + err.message);
+    } finally {
+      btn.disabled=false;
+      btn.innerHTML=origHtml;
+    }
+  }
+
+  function renderRealExecution(exec){
+    // Update Recover & Verify header
+    const pageHeader = document.querySelector('#page-recover .page-subtitle');
+    const isRecovered = exec.status === 'RECOVERY_VERIFIED';
+    const isExecuted = exec.status === 'EXECUTION_VERIFIED';
+    const badgeColor = (isRecovered || isExecuted) ? 'var(--green)' : 'var(--red)';
+    pageHeader.innerHTML = `Real Execution &mdash; <code style="font-family:var(--font-mono);font-size:11px;color:var(--blue);">${exec.execution_id}</code> &middot; <span style="color:${badgeColor};font-weight:600;">${exec.status}</span> &middot; <span style="color:var(--text-muted);">${exec.action_name} &middot; ${exec.env} &middot; ${exec.created_at.replace('T',' ').substring(0,19)} UTC</span>`;
+
+    // Build timeline from stages
+    const timelineEl = document.querySelector('#page-recover .timeline');
+    const stages = exec.stages || [];
+    liveTimelineData = {};
+
+    let html = '';
+    stages.forEach((st, idx) => {
+      const stepNum = idx + 1;
+      const isFail = st.stage.includes('FAIL');
+      const isWarn = st.stage === 'RECOVERING';
+      const dotClass = isFail ? 'failure' : (isWarn ? 'warning' : 'success');
+      const icon = isFail
+        ? '<path d="M3 3l4 4M7 3l-4 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>'
+        : (isWarn ? '<path d="M5 2v3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="5" cy="7.5" r=".6" fill="currentColor"/>'
+                  : '<path d="M2.5 5l2 2 3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>');
+      
+      const timeStr = st.timestamp ? st.timestamp.substring(11, 23) : '';
+      const activeClass = stepNum === stages.length ? 'active' : '';
+
+      html += `<div class="tl-item ${activeClass}" onclick="selectRealTlStep(${stepNum})" id="real-tl-${stepNum}">
+        <div class="tl-line-col">
+          <div class="tl-dot ${dotClass}"><svg viewBox="0 0 10 10" fill="none">${icon}</svg></div>
+          ${stepNum < stages.length ? '<div class="tl-connector"></div>' : ''}
+        </div>
+        <div class="tl-content">
+          <div class="tl-step-name">${st.stage.replace(/_/g, ' ')}</div>
+          <div class="tl-step-detail">${st.detail || (st.hash ? 'Hash: ' + st.hash.substring(0, 18) + '...' : 'Completed')}</div>
+          <div class="tl-step-time">${timeStr}</div>
+        </div>
+      </div>`;
+
+      liveTimelineData[stepNum] = {
+        title: st.stage.replace(/_/g, ' '),
+        badge: st.stage,
+        bc: isFail ? 'badge-red' : (isWarn ? 'badge-amber' : 'badge-green'),
+        bs: isFail ? 'failure' : (isWarn ? 'warning' : 'success'),
+        bi: icon,
+        bl: st.stage,
+        bsub: st.detail || 'Step recorded by PERPLECTRA engine.',
+        data: st
+      };
+    });
+    timelineEl.innerHTML = html;
+
+    // Select the final stage by default
+    selectRealTlStep(stages.length, exec);
+
+    // Update notice to reflect real execution
+    const notice = document.querySelector('#page-recover .illustrative-notice');
+    if(notice){
+      notice.innerHTML = `<svg viewBox="0 0 14 14" fill="none"><path d="M7 1L1 12h12L7 1z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><path d="M7 5.5v3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="7" cy="10" r=".6" fill="currentColor"/></svg>
+      Cryptographically verified execution receipt recorded in SQLite WAL database.`;
+      notice.style.borderColor = 'var(--green-border)';
+      notice.style.color = 'var(--green)';
+    }
+  }
+
+  function selectRealTlStep(s, fullExec){
+    if(!liveTimelineData || !liveTimelineData[s]) return;
+    document.querySelectorAll('#page-recover .tl-item').forEach((el, i) => {
+      el.classList.toggle('active', (i+1) === s);
+    });
+    const d = liveTimelineData[s];
+    document.getElementById('rvTitle').textContent = d.title;
+    const b = document.getElementById('rvBadge');
+    b.className = 'badge ' + d.bc;
+    b.innerHTML = '<span class="badge-dot"></span>' + d.badge;
+
+    let bodyHtml = `<div class="rv-status-banner ${d.bs}" style="margin-bottom:18px;">
+      <div class="rv-status-icon"><svg viewBox="0 0 16 16" fill="none">${d.bi}</svg></div>
+      <div>
+        <div class="rv-status-label">${d.bl}</div>
+        <div class="rv-status-sublabel">${d.bsub}</div>
+      </div>
+    </div>`;
+
+    if(fullExec){
+      bodyHtml += `<div class="section-label" style="margin-bottom:10px;">Cryptographic Evidence</div>
+      <div class="evidence-grid" style="margin-bottom:18px;">
+        <div class="evidence-card"><div class="evidence-label">Baseline SHA-256</div><div class="evidence-value" style="font-size:10px;">${fullExec.baseline_hash ? fullExec.baseline_hash.substring(0,22)+'...' : 'N/A'}</div></div>
+        <div class="evidence-card"><div class="evidence-label">Resulting SHA-256</div><div class="evidence-value" style="font-size:10px;">${fullExec.result_hash ? fullExec.result_hash.substring(0,22)+'...' : 'N/A'}</div></div>
+        <div class="evidence-card"><div class="evidence-label">Verification Outcome</div><div class="evidence-value ok">${fullExec.verification_outcome || 'IN_PROGRESS'}</div></div>
+        <div class="evidence-card"><div class="evidence-label">Recovery Outcome</div><div class="evidence-value ok">${fullExec.recovery_outcome || 'NONE_REQUIRED'}</div></div>
+      </div>
+      <div class="section-label" style="margin-bottom:10px;">Execution Metadata</div>
+      <div class="kv-list">
+        <div class="kv-row"><span class="kv-key">Execution ID</span><span class="kv-val" style="color:var(--blue);">${fullExec.execution_id}</span></div>
+        <div class="kv-row"><span class="kv-key">Target Path</span><span class="kv-val">workspace/test_files/target.txt</span></div>
+        <div class="kv-row"><span class="kv-key">Policy</span><span class="kv-val">${fullExec.policy}</span></div>
+        <div class="kv-row"><span class="kv-key">Failure Injected</span><span class="kv-val">${fullExec.fail_injection ? 'Yes (Deterministic)' : 'No'}</span></div>
+      </div>`;
+    }
+
+    document.getElementById('rvBody').innerHTML = bodyHtml;
+  }
+
+  // ── Timeline simulated fallback ──────────────────────────────────────────────
+  const tlData={
+    1:{t:'Request validated',badge:'Passed',bc:'badge-green',bs:'success',bi:'<path d="M3 8l3.5 3.5L13 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',bl:'Validation passed',bsub:'Intent, recovery mode, and configuration checks all passed. Execution authorized.',body:'<div class="kv-list"><div class="kv-row"><span class="kv-key">Checks passed</span><span class="kv-val" style="color:var(--green);">4 / 4</span></div><div class="kv-row"><span class="kv-key">Intent hash</span><span class="kv-val">sha256:4f7a...b3d1</span></div><div class="kv-row"><span class="kv-key">Config version</span><span class="kv-val">v2.1.3</span></div><div class="kv-row"><span class="kv-key">Timestamp</span><span class="kv-val">13:47:02.114 UTC</span></div></div>'},
+    2:{t:'Baseline captured',badge:'Captured',bc:'badge-green',bs:'success',bi:'<path d="M3 8l3.5 3.5L13 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',bl:'System state snapshot recorded',bsub:'EC2 instance state captured before any changes. Used for rollback if needed.',body:'<div class="code-block"><div class="code-block-header"><span class="code-lang">json</span></div><div class="code-content" style="font-size:11px;">{\n  "running": 3, "pending": 0, "desired": 3,\n  "az": "us-east-1a",\n  "ids": ["i-0c1d2e3f4a","i-0d4e5f6a7b","i-0e5f6a7b8c"],\n  "ts": "2026-10-26T13:47:02.389Z"\n}</div></div>'},
+    3:{t:'Action executed',badge:'Dispatched',bc:'badge-blue',bs:'success',bi:'<path d="M3 8l3.5 3.5L13 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',bl:'RunInstances dispatched',bsub:'AWS API call issued. Requesting 3 new instances in us-east-1a.',body:'<div class="kv-list"><div class="kv-row"><span class="kv-key">API action</span><span class="kv-val">ec2:RunInstances</span></div><div class="kv-row"><span class="kv-key">Region</span><span class="kv-val">us-east-1</span></div><div class="kv-row"><span class="kv-key">Count requested</span><span class="kv-val">3</span></div><div class="kv-row"><span class="kv-key">Timestamp</span><span class="kv-val">13:47:03.017 UTC</span></div></div>'},
+    4:{t:'Failure detected',badge:'Failure',bc:'badge-red',bs:'failure',bi:'<path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',bl:'Instance launch failure',bsub:'2 of 3 requested instances entered an error state. PERPLECTRA is initiating recovery.',body:'<div class="kv-list"><div class="kv-row"><span class="kv-key">Error code</span><span class="kv-val" style="color:var(--red);">InsufficientInstanceCapacity</span></div><div class="kv-row"><span class="kv-key">Failed instance IDs</span><span class="kv-val" style="color:var(--red);">i-0a3f7b8c9d, i-0b2e6a7f1c</span></div><div class="kv-row"><span class="kv-key">Detection latency</span><span class="kv-val">15.537 s</span></div><div class="kv-row"><span class="kv-key">Timestamp</span><span class="kv-val">13:47:18.554 UTC</span></div></div>'},
+    5:{t:'Recovery selected',badge:'Strategy selected',bc:'badge-amber',bs:'warning',bi:'<path d="M5 2v3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="5" cy="7.5" r=".8" fill="currentColor"/>',bl:'AUTO_ROLLBACK selected',bsub:'Recovery engine selected rollback strategy with confidence 0.94. Proceeding automatically.',body:'<div class="kv-list"><div class="kv-row"><span class="kv-key">Strategy</span><span class="kv-val" style="color:var(--blue);">AUTO_ROLLBACK</span></div><div class="kv-row"><span class="kv-key">Confidence</span><span class="kv-val">0.94</span></div><div class="kv-row"><span class="kv-key">Alternatives</span><span class="kv-val">RETRY (0.61), HALT (0.28)</span></div><div class="kv-row"><span class="kv-key">Human approval required</span><span class="kv-val">No</span></div></div>'},
+    6:{t:'Recovery performed',badge:'Recovered',bc:'badge-green',bs:'success',bi:'<path d="M3 8l3.5 3.5L13 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',bl:'Rollback completed',bsub:'Failed instances terminated. System count restored to pre-action baseline of 3.',body:'<div class="kv-list"><div class="kv-row"><span class="kv-key">Action taken</span><span class="kv-val">TerminateInstances</span></div><div class="kv-row"><span class="kv-key">Terminated IDs</span><span class="kv-val" style="font-size:10.5px;">i-0a3f7b8c9d, i-0b2e6a7f1c</span></div><div class="kv-row"><span class="kv-key">Count after recovery</span><span class="kv-val" style="color:var(--green);">3 (matches baseline)</span></div><div class="kv-row"><span class="kv-key">Recovery duration</span><span class="kv-val">11.3 s</span></div></div>'},
+    7:{t:'Verification complete',badge:'Recovery verified',bc:'badge-green',bs:'success',bi:'<path d="M3 8l3.5 3.5L13 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',bl:'Recovery verified',bsub:'Independent verification confirmed the system is in a known-good state. No human intervention required.',body:'<div class="evidence-grid" style="margin-bottom:16px;"><div class="evidence-card"><div class="evidence-label">Probe type</div><div class="evidence-value">describe-instances</div></div><div class="evidence-card"><div class="evidence-label">Health endpoint</div><div class="evidence-value ok">HTTP 200 OK</div></div><div class="evidence-card"><div class="evidence-label">Instance count</div><div class="evidence-value ok">3 / 3 running</div></div><div class="evidence-card"><div class="evidence-label">Verification latency</div><div class="evidence-value">4.229 s</div></div></div><div class="kv-list"><div class="kv-row"><span class="kv-key">Strategy applied</span><span class="kv-val" style="color:var(--blue);">AUTO_ROLLBACK</span></div><div class="kv-row"><span class="kv-key">Human intervention</span><span class="kv-val" style="color:var(--green);">Not required</span></div></div>'}
+  };
+
+  function selectTlStep(s){
+    [1,2,3,4,5,6,7].forEach(i=>document.getElementById('tl-'+i).classList.toggle('active',i===s));
+    const d=tlData[s];
+    document.getElementById('rvTitle').textContent=d.t;
+    const b=document.getElementById('rvBadge');b.className='badge '+d.bc;b.innerHTML='<span class="badge-dot"></span>'+d.badge;
+    document.getElementById('rvBody').innerHTML='<div class="rv-status-banner '+d.bs+'" style="margin-bottom:18px;"><div class="rv-status-icon"><svg viewBox="0 0 16 16" fill="none">'+d.bi+'</svg></div><div><div class="rv-status-label">'+d.bl+'</div><div class="rv-status-sublabel">'+d.bsub+'</div></div></div>'+d.body;
+  }
+
+  // ── Receipts List & Detail ───────────────────────────────────────────────────
+  const receipts=[
+    {id:'exec_9f3b2d1a',action:'scale_up_instances',env:'production',ts:'2026-10-26 13:47',status:'recovered',sl:'Recovery verified',bc:'badge-green',isLive:false},
+    {id:'exec_4c8a1e7f',action:'deploy_microservice',env:'staging',ts:'2026-10-26 12:11',status:'verified',sl:'Execution verified',bc:'badge-green',isLive:false},
+    {id:'exec_2b5d9c3e',action:'rotate_secrets',env:'production',ts:'2026-10-26 09:53',status:'verified',sl:'Execution verified',bc:'badge-green',isLive:false},
+    {id:'exec_6e1f4a8b',action:'delete_stale_records',env:'production',ts:'2026-10-25 22:30',status:'failed',sl:'Recovery failed',bc:'badge-red',isLive:false},
+    {id:'exec_7a3c5f2d',action:'resize_database_cluster',env:'staging',ts:'2026-10-25 18:14',status:'recovered',sl:'Recovery verified',bc:'badge-green',isLive:false},
+    {id:'exec_0d8b2e6f',action:'apply_network_policy',env:'production',ts:'2026-10-25 15:02',status:'verified',sl:'Execution verified',bc:'badge-green',isLive:false},
+    {id:'exec_3f6a0c9e',action:'scale_down_workers',env:'dev',ts:'2026-10-25 11:48',status:'verified',sl:'Execution verified',bc:'badge-green',isLive:false},
+    {id:'exec_8c4e1b7a',action:'patch_security_group',env:'production',ts:'2026-10-24 20:07',status:'failed',sl:'Human intervention',bc:'badge-red',isLive:false},
+  ];
+  let selId=receipts[0].id,activeFilter='all',searchQ='';
+
+  function addLiveReceipt(data){
+    const isRec = data.status === 'RECOVERY_VERIFIED';
+    const isExec = data.status === 'EXECUTION_VERIFIED';
+    const item = {
+      id: data.execution_id,
+      action: data.action_name,
+      env: data.env,
+      ts: (data.created_at || '').replace('T',' ').substring(0,16),
+      status: (isRec ? 'recovered' : (isExec ? 'verified' : 'failed')),
+      sl: data.status.replace(/_/g, ' '),
+      bc: (isRec || isExec) ? 'badge-green' : 'badge-red',
+      isLive: true,
+      raw: data
+    };
+    // If already in list, update it in place
+    const existingIdx = receipts.findIndex(r => r.id === item.id);
+    if(existingIdx >= 0){
+      receipts[existingIdx] = item;
+    } else {
+      receipts.unshift(item);
+    }
+    selId = item.id;
+    renderReceipts();
+    selectReceipt(item.id);
+  }
+
+  async function loadLiveReceipts(){
+    try {
+      let liveList = [];
+      const headers = currentApiKey ? {'Authorization': 'Bearer ' + currentApiKey} : {};
+      const pubRes = await fetch('/api/public/executions', { headers }).catch(() => null);
+      if(pubRes && pubRes.ok){
+        const pubData = await pubRes.json().catch(() => ({}));
+        liveList = pubData.executions || [];
+      } else if(currentApiKey) {
+        const res = await fetch('/api/executions', {
+          headers: {'Authorization': 'Bearer ' + currentApiKey}
+        }).catch(() => null);
+        if(res && res.ok){
+          const list = await res.json().catch(() => ({}));
+          liveList = list.executions || [];
+        }
+      }
+
+      liveList.forEach(e => {
+        const isRec = e.status === 'RECOVERY_VERIFIED';
+        const isExec = e.status === 'EXECUTION_VERIFIED';
+        const item = {
+          id: e.execution_id,
+          action: e.action_name,
+          env: e.env,
+          ts: (e.created_at || '').replace('T',' ').substring(0,16),
+          status: (isRec ? 'recovered' : (isExec ? 'verified' : 'failed')),
+          sl: e.status.replace(/_/g, ' '),
+          bc: (isRec || isExec) ? 'badge-green' : 'badge-red',
+          isLive: true,
+          raw: e
+        };
+        const existingIdx = receipts.findIndex(r => r.id === item.id);
+        if(existingIdx >= 0){
+          receipts[existingIdx] = item;
+        } else {
+          receipts.unshift(item);
+        }
+      });
+
+      // Default selection: if there are live receipts, select the newest live receipt
+      const firstLive = receipts.find(r => r.isLive);
+      if(firstLive && !receipts.some(r => r.id === selId && r.isLive)){
+        selId = firstLive.id;
+      }
+      renderReceipts();
+      selectReceipt(selId);
+    } catch(e){
+      console.warn('Could not load live receipts:', e);
+      renderReceipts();
+      selectReceipt(selId);
+    }
+  }
+
+  function renderReceipts(){
+    const list=document.getElementById('receiptsList');
+    const f=receipts.filter(r=>{
+      let mf = true;
+      if(activeFilter === 'live') mf = r.isLive;
+      else if(activeFilter === 'demo') mf = !r.isLive;
+      else if(activeFilter === 'verified') mf = (r.status === 'verified');
+      else if(activeFilter === 'recovered') mf = (r.status === 'recovered');
+      else if(activeFilter === 'failed') mf = (r.status === 'failed');
+
+      const q=searchQ.toLowerCase(),ms=!q||r.action.toLowerCase().includes(q)||r.id.toLowerCase().includes(q)||r.env.toLowerCase().includes(q);
+      return mf&&ms;
+    });
+    list.innerHTML=f.map(r=>`<div class="receipt-item ${r.id===selId?'selected':''}" onclick="selectReceipt('${r.id}')"><div class="receipt-item-row1"><div class="receipt-action">${r.action}</div><span class="badge ${r.bc}" style="font-size:9.5px;padding:1px 6px;"><span class="badge-dot"></span>${r.sl}</span></div><div class="receipt-item-row2"><div class="receipt-env">${r.env}</div><div class="receipt-ts">${r.ts} UTC</div></div><div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;"><div class="receipt-id">${r.id}</div>${r.isLive ? '<span class="badge badge-blue" style="font-size:9px;padding:1px 6px;">LIVE RECEIPT</span>' : '<span class="demo-tag">demo record</span>'}</div></div>`).join('');
+    if(!f.length)list.innerHTML='<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:12px;">No executions match this filter.</div>';
+  }
+
+  function selectReceipt(id){
+    selId=id;
+    const r=receipts.find(x=>x.id===id);
+    if(!r)return;
+
+    document.getElementById('receiptDetailId').textContent=r.id;
+    document.getElementById('receiptDetailTitle').textContent=r.action;
+    const b=document.getElementById('receiptDetailBadge');
+    b.className='badge '+r.bc;
+    b.innerHTML='<span class="badge-dot"></span>'+r.sl;
+
+    const tb=document.getElementById('receiptTypeBadge');
+    if(tb){
+      if(r.isLive){
+        tb.className='badge badge-blue';
+        tb.textContent='LIVE PERSISTED RECEIPT';
+      } else {
+        tb.className='demo-tag';
+        tb.textContent='demo record';
+      }
+    }
+
+    const ok=r.status!=='failed';
+    document.getElementById('receiptBanner').className='rv-status-banner '+(ok?'success':'failure');
+    document.getElementById('receiptStatusLabel').textContent=r.sl;
+    document.getElementById('receiptStatusDesc').textContent=r.isLive 
+      ? 'Live backend execution persisted in SQLite WAL database. Hashes verified against baseline.' 
+      : (ok?'Illustrative verification confirmed system state. Simulated demo receipt.':'Automated recovery was unsuccessful. Manual intervention was logged.');
+
+    // ── Overview Tab ──
+    const oNotice = document.getElementById('receiptOverviewNotice');
+    const oNoticeText = document.getElementById('receiptOverviewNoticeText');
+    if(oNotice && oNoticeText){
+      if(r.isLive){
+        oNotice.style.borderColor='var(--green-border)';
+        oNotice.style.color='var(--green)';
+        oNoticeText.textContent='Real persisted execution record from local SQLite database. Not simulated.';
+      } else {
+        oNotice.style.borderColor='';
+        oNotice.style.color='';
+        oNoticeText.textContent='Illustrative demo record. No real execution data is stored or retrieved.';
+      }
+    }
+
+    let kvHtml = `<div class="kv-row"><span class="kv-key">Execution ID</span><span class="kv-val" style="font-family:var(--font-mono);">${r.id}</span></div>
+      <div class="kv-row"><span class="kv-key">Action</span><span class="kv-val">${r.action}</span></div>
+      <div class="kv-row"><span class="kv-key">Environment</span><span class="kv-val">${r.env}</span></div>
+      <div class="kv-row"><span class="kv-key">Timestamp</span><span class="kv-val">${r.ts} UTC</span></div>
+      <div class="kv-row"><span class="kv-key">Record Source</span><span class="kv-val" style="color:${r.isLive?'var(--blue)':'var(--text-muted)'};font-weight:600;">${r.isLive?'SQLITE WAL DATABASE (LIVE)':'HARDCODED DEMO SPECIMEN'}</span></div>
+      <div class="kv-row"><span class="kv-key">Recovery mode</span><span class="kv-val" style="color:var(--blue);">${r.raw && r.raw.policy ? r.raw.policy : 'AUTO_ROLLBACK'}</span></div>
+      <div class="kv-row"><span class="kv-key">Final status</span><span class="kv-val" style="color:${ok?'var(--green)':'var(--red)'};font-weight:600;">${r.sl.toUpperCase().replace(/ /g,'_')}</span></div>`;
+
+    if(r.isLive && r.raw){
+      if(r.raw.agent_id) kvHtml += `<div class="kv-row"><span class="kv-key">Registered Agent</span><span class="kv-val">${r.raw.agent_id}</span></div>`;
+      if(r.raw.intent) kvHtml += `<div class="kv-row"><span class="kv-key">Declared Intent</span><span class="kv-val" style="max-width:320px;text-align:right;">${r.raw.intent}</span></div>`;
+      if(r.raw.fail_injection !== undefined) kvHtml += `<div class="kv-row"><span class="kv-key">Failure Injected</span><span class="kv-val">${r.raw.fail_injection ? 'Yes (Deterministic test hook)' : 'No'}</span></div>`;
+    }
+
+    document.getElementById('receiptOverviewKv').innerHTML = kvHtml;
+
+    // ── Evidence Tab ──
+    const eNotice = document.getElementById('receiptEvidenceNotice');
+    const eNoticeText = document.getElementById('receiptEvidenceNoticeText');
+    const eBody = document.getElementById('receiptEvidenceBody');
+
+    if(r.isLive){
+      if(eNotice && eNoticeText){
+        eNotice.style.borderColor='var(--green-border)';
+        eNotice.style.color='var(--green)';
+        eNoticeText.textContent='Actual cryptographic evidence independently recorded during execution. Hashes computed via SHA-256.';
+      }
+
+      if(!r.raw || (!r.raw.baseline_hash && !r.raw.stages)){
+        eBody.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:12px;">Evidence unavailable for this execution record.</div>';
+      } else {
+        const raw = r.raw;
+        const stages = raw.stages || [];
+        const baseHash = raw.baseline_hash || 'Evidence unavailable';
+        const resHash = raw.result_hash || 'Evidence unavailable';
+        const recOutcome = raw.recovery_outcome || (raw.status === 'EXECUTION_VERIFIED' ? 'NO_RECOVERY_NEEDED' : 'Evidence unavailable');
+        const verOutcome = raw.verification_outcome || (raw.status === 'EXECUTION_VERIFIED' ? 'PASS' : 'Evidence unavailable');
+
+        let stagesHtml = '';
+        if(stages.length > 0){
+          stagesHtml = `<div class="section-label" style="margin-top:16px;margin-bottom:10px;">Persisted Stage Transitions</div>
+          <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px;">
+            ${stages.map((st, idx) => `
+              <div style="background:var(--bg-surface-2);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:8px 12px;display:flex;align-items:center;justify-content:space-between;font-size:11.5px;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-family:var(--font-mono);color:var(--text-muted);font-size:10px;">#${idx+1}</span>
+                  <span style="font-weight:600;color:var(--text-primary);">${st.stage}</span>
+                  <span style="color:var(--text-muted);font-size:11px;">${st.detail || ''}</span>
+                </div>
+                <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);">
+                  ${st.ts ? st.ts.substring(11,23) : ''}
+                </div>
+              </div>
+            `).join('')}
+          </div>`;
+        }
+
+        const verifiedHash = raw.verified_hash || (verOutcome === 'HASH_MATCH' ? baseHash : 'Evidence unavailable');
+
+        eBody.innerHTML = `
+          <div class="section-label" style="margin-bottom:10px;">Cryptographic State Hashes</div>
+          <div class="kv-list" style="margin-bottom:16px;">
+            <div class="kv-row"><span class="kv-key">Captured Baseline SHA-256</span><span class="kv-val" style="font-family:var(--font-mono);font-size:10.5px;word-break:break-all;color:var(--cyan);">${baseHash}</span></div>
+            <div class="kv-row"><span class="kv-key">Pre-Recovery Result SHA-256</span><span class="kv-val" style="font-family:var(--font-mono);font-size:10.5px;word-break:break-all;color:var(--amber);">${resHash}</span></div>
+            <div class="kv-row"><span class="kv-key">Post-Recovery Verified SHA-256</span><span class="kv-val" style="font-family:var(--font-mono);font-size:10.5px;word-break:break-all;color:${verOutcome==='HASH_MATCH'||verOutcome==='PASS'?'var(--green)':'var(--red)'};">${verifiedHash}</span></div>
+          </div>
+          <div class="section-label" style="margin-bottom:10px;">Verification & Recovery Results</div>
+          <div class="evidence-grid" style="margin-bottom:16px;">
+            <div class="evidence-card"><div class="evidence-label">Hash Comparison</div><div class="evidence-value ${verOutcome==='HASH_MATCH'||verOutcome==='PASS'?'ok':''}">${verOutcome}</div></div>
+            <div class="evidence-card"><div class="evidence-label">Recovery Action</div><div class="evidence-value ok">${recOutcome}</div></div>
+            <div class="evidence-card"><div class="evidence-label">Policy Applied</div><div class="evidence-value">${raw.policy || 'RESTORE_BASELINE'}</div></div>
+            <div class="evidence-card"><div class="evidence-label">Recorded Stages</div><div class="evidence-value">${stages.length} events</div></div>
+          </div>
+          ${stagesHtml}
+        `;
+      }
+    } else {
+      // Demo Specimen
+      if(eNotice && eNoticeText){
+        eNotice.style.borderColor='';
+        eNotice.style.color='';
+        eNoticeText.textContent='Simulated state snapshots. All JSON data is hardcoded for illustrative purposes only.';
+      }
+      eBody.innerHTML = `
+        <div class="section-label" style="margin-bottom:10px;">Before state (Illustrative)</div>
+        <div class="code-block" style="margin-bottom:14px;">
+          <div class="code-block-header"><span class="code-lang">json</span></div>
+          <div class="code-content" style="font-size:11px;">{
+  "running": 3, "pending": 0, "desired": 3,
+  "az": "us-east-1a",
+  "ids": ["i-0c1d2e3f4a","i-0d4e5f6a7b","i-0e5f6a7b8c"],
+  "snapshot_ts": "2026-10-26T13:47:02.389Z"
+}</div>
+        </div>
+        <div class="section-label" style="margin-bottom:10px;">After recovery state (Illustrative)</div>
+        <div class="code-block" style="margin-bottom:14px;">
+          <div class="code-block-header"><span class="code-lang">json</span></div>
+          <div class="code-content" style="font-size:11px;">{
+  "running": 3, "pending": 0, "desired": 3,
+  "az": "us-east-1a",
+  "ids": ["i-0c1d2e3f4a","i-0d4e5f6a7b","i-0e5f6a7b8c"],
+  "health_check": "HTTP 200",
+  "snapshot_ts": "2026-10-26T13:47:34.112Z"
+}</div>
+        </div>
+        <div class="section-label" style="margin-bottom:10px;">Verification result (Illustrative)</div>
+        <div class="evidence-grid">
+          <div class="evidence-card"><div class="evidence-label">State match</div><div class="evidence-value ok">PASS</div></div>
+          <div class="evidence-card"><div class="evidence-label">Health probe</div><div class="evidence-value ok">HTTP 200</div></div>
+          <div class="evidence-card"><div class="evidence-label">Instances healthy</div><div class="evidence-value ok">3/3</div></div>
+          <div class="evidence-card"><div class="evidence-label">Verifier node</div><div class="evidence-value">verifier-us-east-1</div></div>
+        </div>
+      `;
+    }
+
+    // ── Audit Tab ──
+    const aNotice = document.getElementById('receiptAuditNotice');
+    const aNoticeText = document.getElementById('receiptAuditNoticeText');
+    const aBody = document.getElementById('receiptAuditBody');
+
+    if(r.isLive){
+      if(aNotice && aNoticeText){
+        aNotice.style.borderColor='var(--green-border)';
+        aNotice.style.color='var(--green)';
+        aNoticeText.textContent='Persisted database record. Only storage fields that actually exist in the database are presented below.';
+      }
+      const raw = r.raw || {};
+      aBody.innerHTML = `
+        <div class="kv-list" style="margin-bottom:16px;">
+          <div class="kv-row"><span class="kv-key">Database Engine</span><span class="kv-val">SQLite 3.x (WAL journal mode)</span></div>
+          <div class="kv-row"><span class="kv-key">Record Primary Key</span><span class="kv-val" style="font-family:var(--font-mono);">${raw.execution_id || r.id}</span></div>
+          <div class="kv-row"><span class="kv-key">Agent Foreign Key</span><span class="kv-val" style="font-family:var(--font-mono);">${raw.agent_id || 'N/A'}</span></div>
+          <div class="kv-row"><span class="kv-key">Created Timestamp</span><span class="kv-val">${raw.created_at || 'N/A'}</span></div>
+          <div class="kv-row"><span class="kv-key">Updated Timestamp</span><span class="kv-val">${raw.updated_at || 'N/A'}</span></div>
+          <div class="kv-row"><span class="kv-key">Verification Outcome</span><span class="kv-val" style="color:var(--green);font-weight:600;">${raw.verification_outcome || 'N/A'}</span></div>
+          <div class="kv-row"><span class="kv-key">Failure Reason</span><span class="kv-val">${raw.fail_reason || 'None (Clean execution)'}</span></div>
+          <div class="kv-row"><span class="kv-key">Digital Signature</span><span class="kv-val" style="color:var(--text-muted);font-style:italic;">Not configured for local isolated filesystem target</span></div>
+        </div>
+      `;
+    } else {
+      if(aNotice && aNoticeText){
+        aNotice.style.borderColor='';
+        aNotice.style.color='';
+        aNoticeText.textContent='Illustrative receipt. Real receipts carry cryptographic signatures and tamper-detection.';
+      }
+      aBody.innerHTML = `
+        <div class="kv-list" style="margin-bottom:16px;">
+          <div class="kv-row"><span class="kv-key">Receipt version</span><span class="kv-val">1.0</span></div>
+          <div class="kv-row"><span class="kv-key">Signed by</span><span class="kv-val">perplectra-signer-v1</span></div>
+          <div class="kv-row"><span class="kv-key">Signature algorithm</span><span class="kv-val">Ed25519</span></div>
+          <div class="kv-row"><span class="kv-key">Receipt hash (SHA-256)</span><span class="kv-val" style="font-size:10px;word-break:break-all;">a3f8d2e7b1c94f0e6a5d3c8b2f1e7a9d4b6c0f2e8a3d5b7c9f1e4a6d2b8c3f0</span></div>
+          <div class="kv-row"><span class="kv-key">SDK version</span><span class="kv-val">0.1.0</span></div>
+        </div>
+      `;
+    }
+
+    renderReceipts();
+  }
+
+  function setFilter(el,f){
+    activeFilter=f;
+    document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+    el.classList.add('active');
+    renderReceipts();
+  }
+
+  function filterReceipts(q){
+    searchQ=q;
+    renderReceipts();
+  }
+
+  function switchRtab(el,t){
+    document.querySelectorAll('.receipt-tab').forEach(x=>x.classList.remove('active'));
+    el.classList.add('active');
+    ['overview','evidence','audit'].forEach(x=>document.getElementById('rtab-'+x).classList.toggle('active',x===t));
+  }
+
+  // Always load live receipts on boot so existing database receipts appear automatically
+  loadLiveReceipts();
+  if(currentApiKey && currentAgentId){
+    updateConnectedStatus(currentAgentId);
+  }
+</script>
+</body>
+</html>

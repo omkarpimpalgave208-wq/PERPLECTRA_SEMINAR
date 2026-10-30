@@ -53,24 +53,57 @@ from perplectra.models import (
 from perplectra.recovery_engine import run_protected_action
 
 # ── Configuration (overridden by tests via monkeypatch) ────────────────────────
+import shutil
+import tempfile
+
 _BASE = Path(__file__).parent.resolve()
-DB_PATH: str = os.environ.get(
-    "PERPLECTRA_DB_PATH", str(_BASE / "db" / "perplectra.db")
+_IS_SERVERLESS = bool(
+    os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME")
 )
-WORKSPACE_ROOT: Path = Path(
-    os.environ.get("PERPLECTRA_WORKSPACE", str(_BASE / "workspace" / "test_files"))
+_TMP_DIR = Path(tempfile.gettempdir())
+
+_DEFAULT_DB_PATH = (
+    str(_TMP_DIR / "perplectra.db") if _IS_SERVERLESS else str(_BASE / "db" / "perplectra.db")
 )
+_DEFAULT_WORKSPACE = (
+    _TMP_DIR / "workspace" / "test_files"
+    if _IS_SERVERLESS
+    else _BASE / "workspace" / "test_files"
+)
+
+DB_PATH: str = os.environ.get("PERPLECTRA_DB_PATH", _DEFAULT_DB_PATH)
+WORKSPACE_ROOT: Path = Path(os.environ.get("PERPLECTRA_WORKSPACE", _DEFAULT_WORKSPACE))
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # In serverless environments, seed temporary storage with bundled db/target if present
+    if _IS_SERVERLESS and DB_PATH == str(_TMP_DIR / "perplectra.db"):
+        _TMP_DIR.mkdir(parents=True, exist_ok=True)
+        bundled_db = _BASE / "db" / "perplectra.db"
+        tmp_db_path = Path(DB_PATH)
+        if bundled_db.exists() and not tmp_db_path.exists():
+            try:
+                shutil.copy2(bundled_db, tmp_db_path)
+            except Exception:
+                pass
+
     init_db(DB_PATH)
     WORKSPACE_ROOT.mkdir(parents=True, exist_ok=True)
     seed = WORKSPACE_ROOT / "target.txt"
     if not seed.exists():
-        seed.write_text(
-            "PERPLECTRA test target file.\nInitial state.\n", encoding="utf-8"
-        )
+        bundled_seed = _BASE / "workspace" / "test_files" / "target.txt"
+        if bundled_seed.exists():
+            try:
+                shutil.copy2(bundled_seed, seed)
+            except Exception:
+                seed.write_text(
+                    "PERPLECTRA test target file.\nInitial state.\n", encoding="utf-8"
+                )
+        else:
+            seed.write_text(
+                "PERPLECTRA test target file.\nInitial state.\n", encoding="utf-8"
+            )
     yield
 
 
@@ -253,8 +286,11 @@ def _verify_public_access(request: Request, opt_agent: Optional[dict]) -> None:
     """
     Ensure public audit endpoints are either:
     1. Authenticated by an agent (filtered to that agent's records), or
-    2. Accessed from the local console / loopback interface.
+    2. Accessed from the local console / loopback interface, or
+    3. Operating on a hosted public deployment console (e.g. Vercel).
     """
+    if os.environ.get("VERCEL") or os.environ.get("PERPLECTRA_ALLOW_PUBLIC_CONSOLE", "").lower() in ("1", "true"):
+        return
     if opt_agent is None:
         client_host = request.client.host if request.client else None
         if client_host and client_host not in _LOCAL_HOSTS:
@@ -274,8 +310,13 @@ async def list_public_executions(
 ) -> ExecutionListOut:
     """
     List execution receipts for console audit viewing.
+
+    DEMONSTRATION NOTICE:
+    Unauthenticated public access to these execution receipts is provided strictly
+    for interactive console demonstration and audit timeline inspection.
+    In enterprise deployments, access should be restricted to authenticated console sessions.
     If authenticated as an agent, filters to that agent's records to prevent cross-agent data exposure.
-    If unauthenticated (local console view), returns public execution history without exposing credentials.
+    If unauthenticated (console view), returns public execution history without exposing credentials.
     """
     _verify_public_access(request, opt_agent)
     offset = (page - 1) * per_page
@@ -300,6 +341,11 @@ async def get_public_execution(
 ) -> ExecutionOut:
     """
     Retrieve a single execution receipt for console audit viewing.
+
+    DEMONSTRATION NOTICE:
+    Unauthenticated public access to these execution receipts is provided strictly
+    for interactive console demonstration and audit timeline inspection.
+    In enterprise deployments, access should be restricted to authenticated console sessions.
     If authenticated as an agent, verifies the requested execution belongs to that agent.
     """
     _verify_public_access(request, opt_agent)
